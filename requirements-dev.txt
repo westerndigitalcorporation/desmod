@@ -1,0 +1,6 @@
+-r requirements.txt
+
+pytest >= 2.9.0
+pytest-cov >= 2.2.1
+pytest-flake8 >= 0.2
+tox >= 2.3.1
