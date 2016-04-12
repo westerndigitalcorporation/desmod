@@ -1,25 +1,28 @@
-from .probe import Probe
-
-
 class Component(object):
 
     base_name = ''
 
-    def __init__(self, parent, env=None, name=None, index=None):
-        assert parent or env
+    def __init__(self, parent, env=None, name=None, index=None, tracemgr=None):
+        assert parent or (env and tracemgr)
         self.parent = parent
         self.env = parent.env if env is None else env
+        self.tracemgr = parent.tracemgr if tracemgr is None else tracemgr
         self.name = ((self.base_name if name is None else name) +
                      ('' if index is None else str(index)))
         self.index = index
         if parent is None or not parent.scope:
             self.scope = self.name
         else:
-            self.scope = self.parent.scope + '.' + self.name
+            self.scope = parent.scope + '.' + self.name
         self.processes = []
         self.children = []
         self.extern_relations = set()
-        self.probes = []
+
+        log_tracer = self.tracemgr.log_tracer
+        self.error = log_tracer.get_log_function(self.scope, 'ERROR')
+        self.warn = log_tracer.get_log_function(self.scope, 'WARNING')
+        self.info = log_tracer.get_log_function(self.scope, 'INFO')
+        self.debug = log_tracer.get_log_function(self.scope, 'DEBUG')
 
     def connect(self, relation_name, relation):
         setattr(self, relation_name, relation)
@@ -34,17 +37,11 @@ class Component(object):
                 scope=self.scope,
                 relation_name=self.extern_relations.pop()))
 
-    def probe(self, name, target=None, **hints):
+    def auto_probe(self, name, target=None, **hints):
         if target is None:
             target = getattr(self, name)
-        self.probes.append(Probe(self.scope, name, target, **hints))
-
-    def iter_probes(self):
-        for probe in self.probes:
-            yield probe
-        for child in self.children:
-            for probe in child.iter_probes():
-                yield probe
+        target_scope = '.'.join([self.scope, name])
+        self.tracemgr.auto_probe(target_scope, target, **hints)
 
     def elaborate(self):
         self.connect_children()

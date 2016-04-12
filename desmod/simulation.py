@@ -11,50 +11,45 @@ import timeit
 import simpy
 import six
 
-from .probemanager import ProbeManager
 from .timescale import parse_time, scale_time
 
 
 class SimEnvironment(simpy.Environment):
 
-    def __init__(self, config, rand, sim):
+    def __init__(self, config):
         super(SimEnvironment, self).__init__()
         self.config = config
-        self.rand = rand
-        self.sim = sim
+        self.rand = random.Random()
+        if six.PY3:
+            self.rand.seed(config['sim.seed'], version=1)
+        else:
+            self.rand.seed(config['sim.seed'])
+        self.timescale = parse_time(self.config['sim.timescale'])
 
 
 class Simulation(object):
 
-    def __init__(self, top_cls, config):
+    def __init__(self, env, top_cls):
+        self.env = env
+        self.config = env.config
         self.top_cls = top_cls
         self.top = None
-        self.config = config
-        self.timescale = parse_time(self.config['sim.timescale'])
-
-        rand = random.Random()
-        if six.PY3:
-            rand.seed(config['sim.seed'], version=1)
-        else:
-            rand.seed(config['sim.seed'])
-
-        self.env = SimEnvironment(config, rand, self)
         self.runtime = None
+        self._exit_stack = ExitStack()
+        self._exit_stack.enter_context(self._capture_runtime())
 
-    def elaborate(self):
-        self.top = self.top_cls(parent=None, env=self.env)
-        self.top.elaborate()
+    def simulate(self, tracemgr):
+        with self._exit_stack:
+            self.top = self.top_cls(parent=None, env=self.env,
+                                    tracemgr=tracemgr)
+            self.top.elaborate()
 
-    def simulate(self):
-        duration = scale_time(parse_time(self.config['sim.duration']),
-                              self.timescale)
-        with ExitStack() as stack:
-            stack.enter_context(self._capture_runtime())
-            stack.enter_context(ProbeManager(self.env, self.top.iter_probes()))
+            duration = scale_time(parse_time(self.config['sim.duration']),
+                                  self.env.timescale)
             if self.config['sim.progress.enable']:
-                stack.enter_context(self._progressbar(duration))
+                self._exit_stack.enter_context(self._progressbar(duration))
             self.top.simulate()
-            self.env.run(simpy.Timeout(self.env, duration))
+            self.env.run(until=duration)
 
     @contextmanager
     def _capture_runtime(self):

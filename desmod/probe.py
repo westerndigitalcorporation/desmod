@@ -5,38 +5,18 @@ import six
 import vcd
 
 
-class Probe(object):
-
-    __slots__ = ('scope', 'target', 'hints')
-
-    def __init__(self, parent_scope, name, target, **hints):
-        self.scope = parent_scope + '.' + name
-        self.target = target
-        self.hints = hints
-
-    @property
-    def parent_scope(self):
-        return self.scope.rsplit('.', 1)[0]
-
-    @property
-    def name(self):
-        return self.scope.rsplit('.', 1)[1]
-
-    def attach(self, trace_callbacks):
-        if isinstance(self.target, types.MethodType):
-            _attach_component_method(self.target, trace_callbacks)
-        elif isinstance(self.target, simpy.Container):
-            _attach_container_level(self.target, trace_callbacks)
-        elif isinstance(self.target, simpy.Store):
-            _attach_store_items(self.target, trace_callbacks)
-        elif isinstance(self.target, simpy.Resource):
-            _attach_resource_users(self.target, trace_callbacks)
-        else:
-            raise TypeError('Cannot probe {} of type {}'
-                            .format(self.scope, type(self.target)))
-
-    def detach(self):
-        self.attach(trace_callbacks=[])
+def attach(scope, target, callbacks, **hints):
+    if isinstance(target, types.MethodType):
+        _attach_component_method(target, callbacks)
+    elif isinstance(target, simpy.Container):
+        _attach_container_level(target, callbacks)
+    elif isinstance(target, simpy.Store):
+        _attach_store_items(target, callbacks)
+    elif isinstance(target, simpy.Resource):
+        _attach_resource_users(target, callbacks)
+    else:
+        raise TypeError(
+            'Cannot probe {} of type {}'.format(scope, type(target)))
 
 
 def _detach_methods(target, method_names):
@@ -57,7 +37,7 @@ def _attach_component_method(method, callbacks):
             def wrapper(*args, **kwargs):
                 value = func(*args, **kwargs)
                 for callback in callbacks:
-                    callback(component.env.now, value)
+                    callback(value)
                 return value
             return wrapper
 
@@ -76,7 +56,7 @@ def _attach_container_level(container, callbacks):
                 new_level = container._level
                 if new_level != old_level:
                     for callback in callbacks:
-                        callback(container._env.now, new_level)
+                        callback(new_level)
                 return ret
             return wrapper
 
@@ -95,7 +75,7 @@ def _attach_store_items(store, callbacks):
                 new_items = len(store.items)
                 if new_items != old_items:
                     for callback in callbacks:
-                        callback(store._env.now, new_items)
+                        callback(new_items)
                 return ret
             return wrapper
 
@@ -116,7 +96,7 @@ def _attach_resource_users(resource, callbacks):
                     value = new_users if new_users else 'z'
                     try:
                         for callback in callbacks:
-                            callback(resource._env.now, value)
+                            callback(value)
                     except vcd.VCDPhaseError:
                         pass
                 return ret
