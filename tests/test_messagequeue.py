@@ -1,5 +1,4 @@
-from desmod import MessageQueue
-from desmod.messagequeue import MessageQueue2
+from desmod.messagequeue import MessageQueue, MessageQueue2
 
 
 def test_message_queue(env):
