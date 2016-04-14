@@ -138,10 +138,10 @@ class VCDTracer(Tracer):
 
     def open(self):
         dump_filename = self.env.config['sim.vcd.dump_file']
-        timescale = self.env.config['sim.timescale']
-        dump_file = open(dump_filename, 'w')
-        self.exit_stack.enter_context(dump_file)
-        self.vcd = VCDWriter(dump_file, timescale=timescale)
+        self.vcd = VCDWriter(
+            self.exit_stack.enter_context(open(dump_filename, 'w')),
+            timescale=self.env.timescale,
+            check_values=self.env.config.get('sim.vcd.check_values', True))
         self.exit_stack.enter_context(self.vcd)
         if self.env.config.get('sim.gtkw.live'):
             from vcd.gtkw import spawn_gtkwave_interactive
