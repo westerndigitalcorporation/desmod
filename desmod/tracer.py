@@ -146,7 +146,9 @@ class VCDTracer(Tracer):
         if self.env.config.get('sim.gtkw.live'):
             from vcd.gtkw import spawn_gtkwave_interactive
             save_filename = self.env.config['sim.gtkw.file']
-            spawn_gtkwave_interactive(dump_filename, save_filename, quiet=True)
+            quiet = self.env.config.get('sim.gtkw.quiet', True)
+            spawn_gtkwave_interactive(dump_filename, save_filename,
+                                      quiet=quiet)
 
     def activate_probe(self, scope, target, **hints):
         assert self.enabled
