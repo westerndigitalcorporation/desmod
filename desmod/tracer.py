@@ -44,6 +44,9 @@ class Tracer(object):
     def activate_probe(self, scope, target, **hints):
         raise NotImplementedError()
 
+    def activate_trace(self, scope, **hints):
+        raise NotImplementedError()
+
     def __enter__(self):
         return self
 
@@ -54,7 +57,7 @@ class Tracer(object):
 class LogTracer(Tracer):
 
     name = 'log'
-    default_format = '{level} {ts:.3f} {ts_unit}: {scope}: {message}'
+    default_format = '{level:7} {ts:.3f} {ts_unit}: {scope}:'
 
     levels = {
         'ERROR': 1,
@@ -88,48 +91,41 @@ class LogTracer(Tracer):
             print(self.format_str.format(level='ERROR',
                                          ts=self.env.now,
                                          ts_unit=self.ts_unit,
-                                         scope='Exception',
-                                         message=tb_lines[-1]),
-                  '\n', *tb_lines, file=self.file)
+                                         scope='Exception'),
+                  tb_lines[-1], '\n', *tb_lines, file=self.file)
         self.close()
 
     def is_scope_enabled(self, scope, level=None):
         return ((level is None or self.levels[level] <= self.max_level) and
                 super(LogTracer, self).is_scope_enabled(scope))
 
-    def get_log_function(self, scope, level):
-        if self.is_scope_enabled(scope, level):
-            format_str = partial_format(self.format_str,
-                                        level=level,
-                                        ts_unit=self.ts_unit,
-                                        scope=scope)
-
-            def log_function(message, *args):
-                print(format_str.format(ts=self.env.now, message=message),
-                      *args, file=self.file)
-        else:
-            def log_function(message, *args):
-                pass
-
-        return log_function
-
     def activate_probe(self, scope, target, **hints):
-        log_hints = hints.get('log', {})
-        level = log_hints.get('level', 'PROBE')
+        level = hints.get('level', 'PROBE')
         if not self.is_scope_enabled(scope, level):
             return None
-        value_fmt = log_hints.get('value_fmt', '{value}')
         format_str = partial_format(self.format_str,
                                     level=level,
                                     ts_unit=self.ts_unit,
                                     scope=scope)
 
         def probe_callback(value):
-            print(format_str.format(ts=self.env.now,
-                                    message=value_fmt.format(value=value)),
-                  file=self.file)
+            print(format_str.format(ts=self.env.now), value, file=self.file)
 
         return probe_callback
+
+    def activate_trace(self, scope, **hints):
+        level = hints.get('level', 'DEBUG')
+        if not self.is_scope_enabled(scope, level):
+            return None
+        format_str = partial_format(self.format_str,
+                                    level=level,
+                                    ts_unit=self.ts_unit,
+                                    scope=scope)
+
+        def trace_callback(*value):
+            print(format_str.format(ts=self.env.now), *value, file=self.file)
+
+        return trace_callback
 
 
 class VCDTracer(Tracer):
@@ -152,8 +148,7 @@ class VCDTracer(Tracer):
 
     def activate_probe(self, scope, target, **hints):
         assert self.enabled
-        vcd_hints = hints.get('vcd', {})
-        var_type = vcd_hints.get('var_type')
+        var_type = hints.get('var_type')
         if var_type is None:
             if isinstance(target, simpy.Container):
                 if isinstance(target.level, float):
@@ -166,19 +161,9 @@ class VCDTracer(Tracer):
                 raise ValueError(
                     'Could not infer VCD var_type for {}'.format(scope))
 
-        kwargs = {k: vcd_hints[k]
+        kwargs = {k: hints[k]
                   for k in ['size', 'init', 'ident']
-                  if k in vcd_hints}
-
-        if var_type == 'integer':
-            register_meth = self.vcd.register_int
-        elif var_type == 'real':
-            register_meth = self.vcd.register_real
-        elif var_type == 'event':
-            register_meth = self.vcd.register_event
-        else:
-            register_meth = self.vcd_register_var
-            kwargs['var_type'] = var_type
+                  if k in hints}
 
         if 'init' not in kwargs:
             if isinstance(target, simpy.Container):
@@ -189,12 +174,31 @@ class VCDTracer(Tracer):
                 kwargs['init'] = len(target.items)
 
         parent_scope, name = scope.rsplit('.', 1)
-        var = register_meth(parent_scope, name, **kwargs)
+        var = self.vcd.register_var(parent_scope, name, var_type, **kwargs)
 
         def probe_callback(value):
             self.vcd.change(var, self.env.now, value)
 
         return probe_callback
+
+    def activate_trace(self, scope, **hints):
+        assert self.enabled
+        var_type = hints['var_type']
+        kwargs = {k: hints[k]
+                  for k in ['size', 'init', 'ident']
+                  if k in hints}
+
+        parent_scope, name = scope.rsplit('.', 1)
+        var = self.vcd.register_var(parent_scope, name, var_type, **kwargs)
+
+        if isinstance(var.size, tuple):
+            def trace_callback(*value):
+                self.vcd.change(var, self.env.now, value)
+        else:
+            def trace_callback(value):
+                self.vcd.change(var, self.env.now, value)
+
+        return trace_callback
 
 
 class TraceManager(object):
@@ -215,8 +219,23 @@ class TraceManager(object):
         callbacks = []
         for tracer in self.tracers:
             if tracer.name in hints and tracer.is_scope_enabled(scope):
-                callback = tracer.activate_probe(scope, target, **hints)
+                callback = tracer.activate_probe(scope, target,
+                                                 **hints[tracer.name])
                 if callback:
                     callbacks.append(callback)
         if callbacks:
             probe.attach(scope, target, callbacks, **hints)
+
+    def get_trace_function(self, scope, **hints):
+        callbacks = []
+        for tracer in self.tracers:
+            if tracer.name in hints and tracer.is_scope_enabled(scope):
+                callback = tracer.activate_trace(scope, **hints[tracer.name])
+                if callback:
+                    callbacks.append(callback)
+
+        def trace_function(*value):
+            for callback in callbacks:
+                callback(*value)
+
+        return trace_function

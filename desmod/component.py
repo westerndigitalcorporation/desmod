@@ -18,11 +18,14 @@ class Component(object):
         self.children = []
         self.extern_relations = set()
 
-        log_tracer = self.tracemgr.log_tracer
-        self.error = log_tracer.get_log_function(self.scope, 'ERROR')
-        self.warn = log_tracer.get_log_function(self.scope, 'WARNING')
-        self.info = log_tracer.get_log_function(self.scope, 'INFO')
-        self.debug = log_tracer.get_log_function(self.scope, 'DEBUG')
+        self.error = self.tracemgr.get_trace_function(
+            self.scope, log={'level': 'ERROR'})
+        self.warn = self.tracemgr.get_trace_function(
+            self.scope, log={'level': 'WARNING'})
+        self.info = self.tracemgr.get_trace_function(
+            self.scope, log={'level': 'INFO'})
+        self.debug = self.tracemgr.get_trace_function(
+            self.scope, log={'level': 'DEBUG'})
 
     def connect(self, relation_name, relation):
         setattr(self, relation_name, relation)
@@ -42,6 +45,10 @@ class Component(object):
             target = getattr(self, name)
         target_scope = '.'.join([self.scope, name])
         self.tracemgr.auto_probe(target_scope, target, **hints)
+
+    def get_trace_function(self, name, **hints):
+        target_scope = '.'.join([self.scope, name])
+        return self.tracemgr.get_trace_function(target_scope, **hints)
 
     def elaborate(self):
         self.connect_children()
