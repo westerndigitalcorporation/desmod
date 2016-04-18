@@ -61,3 +61,11 @@ class Component(object):
             child.simulate()
         for proc in self.processes:
             self.env.process(proc())
+
+    def get_results(self, result):
+        for child in self.children:
+            child.get_results(result)
+        self._get_result(result)
+
+    def _get_result(self, result):
+        pass
