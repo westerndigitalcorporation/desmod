@@ -1,5 +1,10 @@
+from copy import deepcopy
+from collections import Sequence
+from itertools import product
+
 import six
 from six.moves import builtins
+from six.moves import zip
 
 
 class ConfigError(Exception):
@@ -11,6 +16,66 @@ def apply_user_overrides(config, overrides, eval_locals=None):
         key, current_value = _fuzzy_lookup(config, user_key)
         value = _safe_eval(user_expr, type(current_value), eval_locals)
         config[key] = value
+
+
+def parse_user_factors(config, user_factors, eval_locals=None):
+    return [parse_user_factor(config, user_keys, user_exprs, eval_locals)
+            for user_keys, user_exprs in user_factors]
+
+
+def parse_user_factor(config, user_keys, user_exprs, eval_locals=None):
+    current = [_fuzzy_lookup(config, user_key)
+               for user_key in user_keys.split(',')]
+    user_values = _safe_eval(user_exprs, eval_locals=eval_locals)
+    values = []
+    if not isinstance(user_values, Sequence):
+        raise ConfigError(
+            'Factor value not a sequence "{}"'.format(user_values))
+    for user_items in user_values:
+        if len(current) == 1:
+            user_items = [user_items]
+        items = []
+        for (key, current_value), item in zip(current, user_items):
+            current_type = type(current_value)
+            if not isinstance(item, current_type):
+                try:
+                    item = current_type(item)
+                except (ValueError, TypeError):
+                    raise ConfigError('Failed to coerce {} to {}'.format(
+                        item, current_type.__name__))
+            items.append(item)
+        values.append(items)
+    return [[key for key, _ in current], values]
+
+
+def factorial_config(base_config, factors, special_key=None):
+    unrolled_factors = []
+    for keys, values_list in factors:
+        unrolled_factors.append([(keys, values) for values in values_list])
+
+    for keys_values_lists in product(*unrolled_factors):
+        config = deepcopy(base_config)
+        special = []
+        if special_key:
+            config[special_key] = special
+        for keys, values in keys_values_lists:
+            for key, value in zip(keys, values):
+                config[key] = value
+                if special_key:
+                    special.append([key, value])
+        yield config
+
+
+def get_short_special(special):
+    short_special = []
+    for key, value in special:
+        key_parts = key.split('.')
+        for i in reversed(range(len(key_parts))):
+            short_key = '.'.join(key_parts[i:])
+            if all(k == key or not k.endswith(short_key) for k, _ in special):
+                short_special.append((short_key, value))
+                break
+    return short_special
 
 
 def _fuzzy_lookup(config, fuzzy_key):
