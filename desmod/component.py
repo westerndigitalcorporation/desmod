@@ -55,10 +55,6 @@ class Component(object):
         for child in self.children:
             child._check_connections()
             child.elaborate()
-
-    def simulate(self):
-        for child in self.children:
-            child.simulate()
         for proc in self.processes:
             self.env.process(proc())
 

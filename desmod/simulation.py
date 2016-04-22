@@ -51,7 +51,6 @@ def simulate(config, top_type,
                     if pre_elab_hook:
                         pre_elab_hook(env, top)
                     top.elaborate()
-                    top.simulate()
                     if pre_sim_hook:
                         pre_sim_hook(env, top)
                     env.run(until=env.duration)
