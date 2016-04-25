@@ -147,6 +147,8 @@ def _progress_notification(env):
                 yield None
             finally:
                 _progress_queue.put((seq, 1))
+    else:
+        yield None
 
 
 def _consume_progress(config, num_sims):
