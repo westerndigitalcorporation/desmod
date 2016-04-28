@@ -33,11 +33,12 @@ class SimEnvironment(simpy.Environment):
 
 
 def simulate(config, top_type,
+             env_type=SimEnvironment,
              pre_init_hook=None,
              pre_elab_hook=None,
              pre_sim_hook=None,
              post_sim_hook=None):
-    env = SimEnvironment(config)
+    env = env_type(config)
     result_filename = config['sim.result.file']
     result = {'config': config, 'sim': {}}
     t0 = timeit.default_timer()
