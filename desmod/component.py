@@ -55,8 +55,28 @@ class Component(object):
         for child in self.children:
             child._check_connections()
             child.elaborate()
-        for proc in self.processes:
-            self.env.process(proc())
+        for proc_entry in self.processes:
+            proc, args, kwargs = self._parse_process_entry(proc_entry)
+            self.env.process(proc(*args, **kwargs))
+
+    @staticmethod
+    def _parse_process_entry(proc_entry):
+        if isinstance(proc_entry, (list, tuple)):
+            assert 1 <= len(proc_entry) <= 3
+            proc = proc_entry[0]
+            if len(proc_entry) >= 2:
+                args = proc_entry[1]
+            else:
+                args = []
+            if len(proc_entry) == 3:
+                kwargs = proc_entry[2]
+            else:
+                kwargs = {}
+        else:
+            proc = proc_entry
+            args = []
+            kwargs = {}
+        return proc, args, kwargs
 
     def get_results(self, result):
         for child in self.children:
