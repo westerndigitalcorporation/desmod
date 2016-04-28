@@ -1,8 +1,4 @@
 from __future__ import print_function
-try:
-    from contextlib import ExitStack
-except ImportError:
-    from contextlib2 import ExitStack
 import re
 import sys
 import traceback
@@ -20,7 +16,6 @@ class Tracer(object):
 
     def __init__(self, env):
         self.env = env
-        self.exit_stack = ExitStack()
         cfg_scope = 'sim.' + self.name + '.'
         self.enabled = env.config.get(cfg_scope + 'enable', False)
         if self.enabled:
@@ -39,7 +34,11 @@ class Tracer(object):
         raise NotImplementedError()
 
     def close(self):
-        self.exit_stack.close()
+        if self.enabled:
+            self._close()
+
+    def _close(self):
+        raise NotImplementedError()
 
     def activate_probe(self, scope, target, **hints):
         raise NotImplementedError()
@@ -81,9 +80,10 @@ class LogTracer(Tracer):
 
         if log_filename:
             self.file = open(log_filename, 'w')
-            self.exit_stack.enter_context(self.file)
+            self.should_close = True
         else:
             self.file = sys.stderr
+            self.should_close = False
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type and self.enabled:
@@ -94,6 +94,10 @@ class LogTracer(Tracer):
                                          scope='Exception'),
                   tb_lines[-1], '\n', *tb_lines, file=self.file)
         self.close()
+
+    def _close(self):
+        if self.should_close:
+            self.file.close()
 
     def is_scope_enabled(self, scope, level=None):
         return ((level is None or self.levels[level] <= self.max_level) and
@@ -134,17 +138,21 @@ class VCDTracer(Tracer):
 
     def open(self):
         dump_filename = self.env.config['sim.vcd.dump_file']
-        self.vcd = VCDWriter(
-            self.exit_stack.enter_context(open(dump_filename, 'w')),
-            timescale=self.env.timescale,
-            check_values=self.env.config.get('sim.vcd.check_values', True))
-        self.exit_stack.enter_context(self.vcd)
+        check_values = self.env.config.get('sim.vcd.check_values', True)
+        self.dump_file = open(dump_filename, 'w')
+        self.vcd = VCDWriter(self.dump_file,
+                             timescale=self.env.timescale,
+                             check_values=check_values)
         if self.env.config.get('sim.gtkw.live'):
             from vcd.gtkw import spawn_gtkwave_interactive
             save_filename = self.env.config['sim.gtkw.file']
             quiet = self.env.config.get('sim.gtkw.quiet', True)
             spawn_gtkwave_interactive(dump_filename, save_filename,
                                       quiet=quiet)
+
+    def _close(self):
+        self.vcd.close(self.env.now)
+        self.dump_file.close()
 
     def activate_probe(self, scope, target, **hints):
         assert self.enabled
@@ -204,16 +212,23 @@ class VCDTracer(Tracer):
 class TraceManager(object):
 
     def __init__(self, env):
-        self.exit_stack = ExitStack()
-        self.log_tracer = self.exit_stack.enter_context(LogTracer(env))
-        self.vcd_tracer = self.exit_stack.enter_context(VCDTracer(env))
-        self.tracers = [self.log_tracer, self.vcd_tracer]
+        self.tracers = []
+        try:
+            for tracer_type in [LogTracer, VCDTracer]:
+                self.tracers.append(tracer_type(env))
+        except:
+            self.close()
+            raise
 
     def __enter__(self):
         return self
 
     def __exit__(self, *exc):
-        self.exit_stack.__exit__(*exc)
+        self.close()
+
+    def close(self):
+        for tracer in self.tracers:
+            tracer.close()
 
     def auto_probe(self, scope, target, **hints):
         callbacks = []
