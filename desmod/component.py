@@ -14,9 +14,9 @@ class Component(object):
             self.scope = self.name
         else:
             self.scope = parent.scope + '.' + self.name
-        self.processes = []
+        self._processes = []
+        self._connections = set()
         self.children = []
-        self.extern_relations = set()
 
         self.error = self.tracemgr.get_trace_function(
             self.scope, log={'level': 'ERROR'})
@@ -27,18 +27,32 @@ class Component(object):
         self.debug = self.tracemgr.get_trace_function(
             self.scope, log={'level': 'DEBUG'})
 
-    def connect(self, relation_name, relation):
-        setattr(self, relation_name, relation)
-        self.extern_relations.remove(relation_name)
+    def add_process(self, process_func, *args, **kwargs):
+        self._processes.append((process_func, args, kwargs))
+
+    def add_processes(self, *process_funcs):
+        for process_func in process_funcs:
+            self.add_process(process_func)
+
+    def add_connections(self, *connection_names):
+        self._connections.update(connection_names)
+
+    def connect(self, connection_name, relation):
+        setattr(self, connection_name, relation)
+        self._connections.remove(connection_name)
 
     def connect_children(self):
-        pass
+        if any(child._connections for child in self.children):
+            raise NotImplementedError(
+                '{0} has unconnected children; implement '
+                '{0}.connect_children()'.format(type(self).__name__))
 
     def _check_connections(self):
-        if self.extern_relations:
-            raise RuntimeError('{scope}.{relation_name} not connected'.format(
-                scope=self.scope,
-                relation_name=self.extern_relations.pop()))
+        if self._connections:
+            raise RuntimeError(
+                '{scope}.{connection_name} not connected'.format(
+                    scope=self.scope,
+                    connection_name=self._connections.pop()))
 
     def auto_probe(self, name, target=None, **hints):
         if target is None:
@@ -55,28 +69,8 @@ class Component(object):
         for child in self.children:
             child._check_connections()
             child.elaborate()
-        for proc_entry in self.processes:
-            proc, args, kwargs = self._parse_process_entry(proc_entry)
+        for proc, args, kwargs in self._processes:
             self.env.process(proc(*args, **kwargs))
-
-    @staticmethod
-    def _parse_process_entry(proc_entry):
-        if isinstance(proc_entry, (list, tuple)):
-            assert 1 <= len(proc_entry) <= 3
-            proc = proc_entry[0]
-            if len(proc_entry) >= 2:
-                args = proc_entry[1]
-            else:
-                args = []
-            if len(proc_entry) == 3:
-                kwargs = proc_entry[2]
-            else:
-                kwargs = {}
-        else:
-            proc = proc_entry
-            args = []
-            kwargs = {}
-        return proc, args, kwargs
 
     def get_results(self, result):
         for child in self.children:
