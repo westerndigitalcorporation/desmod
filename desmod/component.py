@@ -4,7 +4,6 @@ class Component(object):
 
     def __init__(self, parent, env=None, name=None, index=None, tracemgr=None):
         assert parent or (env and tracemgr)
-        self.parent = parent
         self.env = parent.env if env is None else env
         self.tracemgr = parent.tracemgr if tracemgr is None else tracemgr
         self.name = ((self.base_name if name is None else name) +
