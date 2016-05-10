@@ -14,7 +14,8 @@ class Component(object):
         else:
             self.scope = parent.scope + '.' + self.name
         self._processes = []
-        self._connections = set()
+        self._connections = []
+        self._not_connected = set()
         self.children = []
 
         self.error = self.tracemgr.get_trace_function(
@@ -34,24 +35,26 @@ class Component(object):
             self.add_process(process_func)
 
     def add_connections(self, *connection_names):
-        self._connections.update(connection_names)
+        self._not_connected.update(connection_names)
 
-    def connect(self, connection_name, relation):
-        setattr(self, connection_name, relation)
-        self._connections.remove(connection_name)
+    def connect(self, dst, dst_connection, src=None, src_connection=None,
+                conn_obj=None):
+        if src is None:
+            src = self
+        if src_connection is None:
+            src_connection = dst_connection
+        if conn_obj is None:
+            conn_obj = getattr(src, src_connection)
+        setattr(dst, dst_connection, conn_obj)
+        dst._not_connected.remove(dst_connection)
+        dst._connections.append(
+            (dst_connection, src, src_connection, conn_obj))
 
     def connect_children(self):
-        if any(child._connections for child in self.children):
+        if any(child._not_connected for child in self.children):
             raise NotImplementedError(
                 '{0} has unconnected children; implement '
                 '{0}.connect_children()'.format(type(self).__name__))
-
-    def _check_connections(self):
-        if self._connections:
-            raise RuntimeError(
-                '{scope}.{connection_name} not connected'.format(
-                    scope=self.scope,
-                    connection_name=self._connections.pop()))
 
     def auto_probe(self, name, target=None, **hints):
         if target is None:
@@ -66,7 +69,9 @@ class Component(object):
     def elaborate(self):
         self.connect_children()
         for child in self.children:
-            child._check_connections()
+            if child._not_connected:
+                raise RuntimeError('{scope}.{conn_name} not connected'.format(
+                    scope=child.scope, conn_name=child._not_connected.pop()))
             child.elaborate()
         for proc, args, kwargs in self._processes:
             self.env.process(proc(*args, **kwargs))
