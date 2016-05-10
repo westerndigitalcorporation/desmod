@@ -40,7 +40,7 @@ def simulate(config, top_type,
              post_sim_hook=None):
     env = env_type(config)
     result_filename = config['sim.result.file']
-    result = {'config': config, 'sim': {}}
+    result = {'config': config}
     t0 = timeit.default_timer()
     with Workspace(config['sim.workspace'], overwrite=True):
         if pre_init_hook:
@@ -58,15 +58,15 @@ def simulate(config, top_type,
                     if post_sim_hook:
                         post_sim_hook(env, top)
             except Exception as e:
-                result['sim']['exception'] = str(e)
+                result['sim.exception'] = str(e)
                 raise
             else:
-                result['sim']['exception'] = None
+                result['sim.exception'] = None
                 now_ts = env.now, env.timescale[1]
-                result['sim']['time'] = scale_time(now_ts, (1, 's'))
+                result['sim.time'] = scale_time(now_ts, (1, 's'))
                 top.get_results(result)
             finally:
-                result['sim']['runtime'] = timeit.default_timer() - t0
+                result['sim.runtime'] = timeit.default_timer() - t0
                 with open(result_filename, 'w') as result_file:
                     yaml.dump(result, stream=result_file)
     return result
