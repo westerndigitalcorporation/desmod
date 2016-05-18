@@ -32,31 +32,20 @@ class SimEnvironment(simpy.Environment):
                                    self.timescale)
 
 
-def simulate(config, top_type,
-             env_type=SimEnvironment,
-             pre_init_hook=None,
-             pre_elab_hook=None,
-             pre_sim_hook=None,
-             post_sim_hook=None):
+def simulate(config, top_type, env_type=SimEnvironment):
     env = env_type(config)
     result_filename = config['sim.result.file']
     result = {'config': config}
     t0 = timeit.default_timer()
     with Workspace(config['sim.workspace'], overwrite=True):
-        if pre_init_hook:
-            pre_init_hook(env)
+        top_type.pre_init(env)
         with TraceManager(env) as tracemgr:
             try:
                 with _progress_notification(env):
                     top = top_type(parent=None, env=env, tracemgr=tracemgr)
-                    if pre_elab_hook:
-                        pre_elab_hook(env, top)
                     top.elaborate()
-                    if pre_sim_hook:
-                        pre_sim_hook(env, top)
                     env.run(until=env.duration)
-                    if post_sim_hook:
-                        post_sim_hook(env, top)
+                    top.post_simulate()
             except Exception as e:
                 result['sim.exception'] = str(e)
                 raise
@@ -64,7 +53,7 @@ def simulate(config, top_type,
                 result['sim.exception'] = None
                 now_ts = env.now, env.timescale[1]
                 result['sim.time'] = scale_time(now_ts, (1, 's'))
-                top.get_results(result)
+                top.get_result(result)
             finally:
                 result['sim.runtime'] = timeit.default_timer() - t0
                 with open(result_filename, 'w') as result_file:
@@ -72,7 +61,7 @@ def simulate(config, top_type,
     return result
 
 
-def simulate_factors(base_config, top_type, **kwargs):
+def simulate_factors(base_config, top_type, env_type=SimEnvironment):
     factors = base_config['sim.factors']
     configs = list(factorial_config(base_config, factors, 'sim.special'))
     num_sims = len(configs)
@@ -85,8 +74,7 @@ def simulate_factors(base_config, top_type, **kwargs):
         shutil.rmtree(base_workspace)
     pool_size = min(num_sims, multiprocessing.cpu_count())
     pool = multiprocessing.Pool(pool_size)
-    sim_args = [(config, top_type, kwargs)
-                for config in configs]
+    sim_args = [(config, top_type, env_type) for config in configs]
     promise = pool.map_async(_simulate_trampoline, sim_args)
     if config.get('sim.progress.enable'):
         _consume_progress(base_config, num_sims)
@@ -94,8 +82,7 @@ def simulate_factors(base_config, top_type, **kwargs):
 
 
 def _simulate_trampoline(args):
-    config, top_type, kwargs = args
-    return simulate(config, top_type, **kwargs)
+    return simulate(*args)
 
 
 def _get_progressbar(config):

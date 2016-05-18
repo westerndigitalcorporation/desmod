@@ -66,6 +66,10 @@ class Component(object):
         target_scope = '.'.join([self.scope, name])
         return self.tracemgr.get_trace_function(target_scope, **hints)
 
+    @classmethod
+    def pre_init(cls, env):
+        pass
+
     def elaborate(self):
         self.connect_children()
         for child in self.children:
@@ -75,11 +79,23 @@ class Component(object):
             child.elaborate()
         for proc, args, kwargs in self._processes:
             self.env.process(proc(*args, **kwargs))
+        self.elab_hook()
 
-    def get_results(self, result):
+    def elab_hook(self):
+        pass
+
+    def post_simulate(self):
         for child in self.children:
-            child.get_results(result)
-        self._get_result(result)
+            child.post_simulate()
+        self.post_sim_hook()
 
-    def _get_result(self, result):
+    def post_sim_hook(self):
+        pass
+
+    def get_result(self, result):
+        for child in self.children:
+            child.get_result(result)
+        self.get_result_hook(result)
+
+    def get_result_hook(self, result):
         pass
