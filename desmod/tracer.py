@@ -224,7 +224,8 @@ class TraceManager(object):
         return self
 
     def __exit__(self, *exc):
-        self.close()
+        for tracer in self.tracers:
+            tracer.__exit__(*exc)
 
     def close(self):
         for tracer in self.tracers:
