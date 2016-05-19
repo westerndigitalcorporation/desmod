@@ -8,6 +8,7 @@ from vcd import VCDWriter
 
 from . import probe
 from .util import partial_format
+from .timescale import parse_time, scale_time
 
 
 class Tracer(object):
@@ -138,10 +139,15 @@ class VCDTracer(Tracer):
 
     def open(self):
         dump_filename = self.env.config['sim.vcd.dump_file']
+        if 'sim.vcd.timescale' in self.env.config:
+            vcd_timescale = parse_time(self.env.config['sim.vcd.timescale'])
+        else:
+            vcd_timescale = self.env.timescale
+        self.scale_factor = scale_time(self.env.timescale, vcd_timescale)
         check_values = self.env.config.get('sim.vcd.check_values', True)
         self.dump_file = open(dump_filename, 'w')
         self.vcd = VCDWriter(self.dump_file,
-                             timescale=self.env.timescale,
+                             timescale=vcd_timescale,
                              check_values=check_values)
         if self.env.config.get('sim.gtkw.live'):
             from vcd.gtkw import spawn_gtkwave_interactive
@@ -150,8 +156,11 @@ class VCDTracer(Tracer):
             spawn_gtkwave_interactive(dump_filename, save_filename,
                                       quiet=quiet)
 
+    def vcd_now(self):
+        return self.env.now * self.scale_factor
+
     def _close(self):
-        self.vcd.close(self.env.now)
+        self.vcd.close(self.vcd_now())
         self.dump_file.close()
 
     def activate_probe(self, scope, target, **hints):
@@ -185,7 +194,7 @@ class VCDTracer(Tracer):
         var = self.vcd.register_var(parent_scope, name, var_type, **kwargs)
 
         def probe_callback(value):
-            self.vcd.change(var, self.env.now, value)
+            self.vcd.change(var, self.vcd_now(), value)
 
         return probe_callback
 
@@ -201,10 +210,10 @@ class VCDTracer(Tracer):
 
         if isinstance(var.size, tuple):
             def trace_callback(*value):
-                self.vcd.change(var, self.env.now, value)
+                self.vcd.change(var, self.vcd_now(), value)
         else:
             def trace_callback(value):
-                self.vcd.change(var, self.env.now, value)
+                self.vcd.change(var, self.vcd_now(), value)
 
         return trace_callback
 
