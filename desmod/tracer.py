@@ -9,6 +9,7 @@ from vcd import VCDWriter
 from . import probe
 from .util import partial_format
 from .timescale import parse_time, scale_time
+from .queue import Queue
 
 
 class Tracer(object):
@@ -172,7 +173,7 @@ class VCDTracer(Tracer):
                     var_type = 'real'
                 else:
                     var_type = 'integer'
-            elif isinstance(target, (simpy.Resource, simpy.Store)):
+            elif isinstance(target, (simpy.Resource, simpy.Store, Queue)):
                 var_type = 'integer'
             else:
                 raise ValueError(
@@ -187,7 +188,7 @@ class VCDTracer(Tracer):
                 kwargs['init'] = target.level
             elif isinstance(target, simpy.Resource):
                 kwargs['init'] = len(target.users) if target.users else 'z'
-            elif isinstance(target, simpy.Store):
+            elif isinstance(target, (simpy.Store, Queue)):
                 kwargs['init'] = len(target.items)
 
         parent_scope, name = scope.rsplit('.', 1)

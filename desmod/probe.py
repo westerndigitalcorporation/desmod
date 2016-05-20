@@ -4,6 +4,8 @@ import simpy
 import six
 import vcd
 
+from desmod.queue import Queue
+
 
 def attach(scope, target, callbacks, **hints):
     if isinstance(target, types.MethodType):
@@ -14,6 +16,8 @@ def attach(scope, target, callbacks, **hints):
         _attach_store_items(target, callbacks)
     elif isinstance(target, simpy.Resource):
         _attach_resource_users(target, callbacks)
+    elif isinstance(target, Queue):
+        _attach_queue_items(target, callbacks)
     else:
         raise TypeError(
             'Cannot probe {} of type {}'.format(scope, type(target)))
@@ -104,3 +108,14 @@ def _attach_resource_users(resource, callbacks):
 
         resource._do_get = make_wrapper(resource._do_get)
         resource._do_put = make_wrapper(resource._do_put)
+
+
+def _attach_queue_items(queue, callbacks):
+    if callbacks:
+        def hook():
+            for callback in callbacks:
+                callback(len(queue.items))
+
+        queue._put_hook = queue._get_hook = hook
+    else:
+        queue._put_hook = queue._get_hook = None
