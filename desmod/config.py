@@ -11,9 +11,48 @@ class ConfigError(Exception):
     pass
 
 
+class NamedManager(object):
+    """Manage named configurations.
+
+    Any number of named configurations can be input using the name() method.
+    The resolve() method is used to compose a fully resolved configuration
+    based on one or more named configurations.
+
+    """
+    def __init__(self):
+        self._named_configs = {}
+
+    def name(self, name, deps, cfg=None):
+        """Name a new config and its dependencies."""
+        if name in self._named_configs:
+            raise ConfigError('name already used: {}'.format(name))
+        if cfg is None:
+            cfg = {}
+        self._named_configs[name] = (deps, cfg)
+
+    def resolve(self, *names):
+        """Resolve named configs into a new config object."""
+        resolved = {}
+        self._resolve(resolved, *names)
+        return resolved
+
+    def _resolve(self, resolved, *names):
+        for name in names:
+            if name not in self._named_configs:
+                raise ConfigError('unknown named config: {}'.format(name))
+            deps, cfg = self._named_configs[name]
+            self._resolve(resolved, *deps)
+            resolved.update(cfg)
+
+    def iter(self):
+        """Iterate named config (name, deps, cfg) tuples."""
+        for name, (deps, cfg) in self._named_configs.items():
+            yield name, deps, cfg
+
+
 def apply_user_overrides(config, overrides, eval_locals=None):
     for user_key, user_expr in overrides:
-        key, current_value = _fuzzy_lookup(config, user_key)
+        key, current_value = fuzzy_lookup(config, user_key)
         value = _safe_eval(user_expr, type(current_value), eval_locals)
         config[key] = value
 
@@ -24,7 +63,7 @@ def parse_user_factors(config, user_factors, eval_locals=None):
 
 
 def parse_user_factor(config, user_keys, user_exprs, eval_locals=None):
-    current = [_fuzzy_lookup(config, user_key)
+    current = [fuzzy_lookup(config, user_key.strip())
                for user_key in user_keys.split(',')]
     user_values = _safe_eval(user_exprs, eval_locals=eval_locals)
     values = []
@@ -78,7 +117,7 @@ def get_short_special(special):
     return short_special
 
 
-def _fuzzy_lookup(config, fuzzy_key):
+def fuzzy_lookup(config, fuzzy_key):
     try:
         return fuzzy_key, config[fuzzy_key]
     except KeyError:

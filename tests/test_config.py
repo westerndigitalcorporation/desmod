@@ -1,6 +1,7 @@
 import pytest
 
 from desmod.config import (ConfigError,
+                           NamedManager,
                            apply_user_overrides,
                            factorial_config,
                            parse_user_factor,
@@ -16,6 +17,32 @@ def config():
             'a.b.c': 'something',
             'd.e.f': [3, 2, 1],
             'g.h.i': {'a': 1, 'b': 2}}
+
+
+@pytest.fixture
+def named_mgr():
+    return NamedManager()
+
+
+def test_named_reuse(named_mgr):
+    named_mgr.name('xxx', [], {'x': 0})
+    with pytest.raises(ConfigError):
+        named_mgr.name('xxx', [], {'y': 1})
+    with pytest.raises(ConfigError):
+        named_mgr.resolve('yyy')
+
+
+def test_named_resolve(named_mgr):
+    named_mgr.name('www', [], {'w': 0})
+    named_mgr.name('xxx', [], {'x': 1})
+    named_mgr.name('yyy', ['xxx', 'www'], {'y': 2})
+    named_mgr.name('zzz', ['yyy'], {'z': 3})
+    named_mgr.name('qqq', ['zzz'])
+    assert named_mgr.resolve('qqq') == {'w': 0, 'x': 1, 'y': 2, 'z': 3}
+
+    assert set(name for name, _, _ in named_mgr.iter()) == {'www', 'xxx',
+                                                            'yyy', 'zzz',
+                                                            'qqq'}
 
 
 def test_user_override(config):
