@@ -1,0 +1,5 @@
+==========
+``desmod``
+==========
+
+.. automodule:: desmod

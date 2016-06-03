@@ -1,3 +1,28 @@
+"""Tools for managing simulation configurations.
+
+Each simulation requires a configuration dictionary that defines various
+configuration values for both the simulation (`desmod`) and the user model. The
+configuration dictionary is flat, but the keys use a dotted notation, similar
+to :class:`Component` scopes, that allows for different namespaces to exist
+within the [flat] configuration dictionary.
+
+Several configuration key/values are required by desmod itself. These
+configuration keys are prefixed with 'sim.'; for example: 'sim.duration' and
+'sim.seed'.
+
+Models may define their own configuration key/values, but should avoid using
+the 'sim.` prefix.
+
+The :class:`NamedManager` class provides a mechanism for defining named
+groupings of configuration values. These named configuration groups allow
+quick configuration of multiple values. Configuration groups are also
+composable: a configuration group can be defined to depend on several other
+configuration groups.
+
+Most functions in this module are provided to support building user interfaces
+for configuring a model.
+
+"""
 from copy import deepcopy
 from collections import Sequence
 from itertools import product
@@ -8,11 +33,11 @@ from six.moves import zip
 
 
 class ConfigError(Exception):
-    pass
+    """Exception raised for a variety of configuration errors."""
 
 
 class NamedManager(object):
-    """Manage named configurations.
+    """Manage named configuration groups.
 
     Any number of named configurations can be input using the name() method.
     The resolve() method is used to compose a fully resolved configuration
@@ -51,6 +76,27 @@ class NamedManager(object):
 
 
 def apply_user_overrides(config, overrides, eval_locals=None):
+    """Apply user-provided overrides to a configuration.
+
+    The user-provided `overrides` list are first verified for validitiy and
+    then applied to the the provided `config` dictionary.
+
+    Each user-provided key must already exist in `config`. The
+    :func:`fuzzy_lookup()` function is used to verify that the user-provided
+    key exists unambiguously in `config`.
+
+    The user-provided value expressions are evaluated against a safe local
+    environment using :func:`eval()`. The type of the resulting value must be
+    type-compatible with the existing (default) value in `config`.
+
+    :param dict config: Configuration dictionary to modify.
+    :param list overrides:
+        List of user-provided (key, value expression) tuples.
+    :param dict eval_locals:
+        Optional dictionary of locals to use with :func:`eval()`. A safe and
+        useful set of locals is provided by default.
+
+    """
     for user_key, user_expr in overrides:
         key, current_value = fuzzy_lookup(config, user_key)
         value = _safe_eval(user_expr, type(current_value), eval_locals)
@@ -58,11 +104,71 @@ def apply_user_overrides(config, overrides, eval_locals=None):
 
 
 def parse_user_factors(config, user_factors, eval_locals=None):
+    """Safely parse user-provided configuration factors.
+
+    A configuration factor consists of an n-tuple of configuration keys along
+    with a list of corresponding n-tuples of values. Configuration factors are
+    used by :func:`~desmod.simulation.simulate_factors()` to run multiple
+    simulations to explore a subset of the model's configuration space.
+
+    :param dict config:
+        The configuration dictionary is used to check the keys and values of
+        the user-provided factors. The dictionary is not modified.
+    :param user_factors:
+        Sequence of `(user_keys, user_expressions)` tuples. See
+        :func:`parse_user_factor()` for more detail on user keys and
+        expressions.
+    :param dict eval_locals:
+        Optional dictionary of locals used when :func:`eval()`-ing user
+        expressions.
+    :returns:
+        List of keys, values pairs. The returned list of factors is suitable
+        for assigning to `config['sim.factors']`.
+    :raises `desmod.config.ConfigError`: For invalid user keys or expressions.
+
+    """
     return [parse_user_factor(config, user_keys, user_exprs, eval_locals)
             for user_keys, user_exprs in user_factors]
 
 
 def parse_user_factor(config, user_keys, user_exprs, eval_locals=None):
+    """Safely parse a user-provided configuration factor.
+
+    Example:
+
+        >>> config = {'a.b.x': 0,
+                      'a.b.y': True,
+                      'a.b.z': 'something'}
+        >>> parse_user_factor(config, 'x,y', '(1,True), (2,False), (3,True)')
+        [['a.b.x', 'a.b.y'], [[1, True], [2, False], [3, True]]]
+
+    :param dict config:
+        The configuration dictionary is used to check the keys and values of
+        the user-provided factors. The dictionary is not modified.
+    :param str user_keys:
+        String of comma-separated configuration keys of the factor. The keys
+        may be fuzzy (i.e. valid for use with :func:`fuzzy_lookup()`), but note
+        that the returned keys will always be fully-qualified (non-fuzzy).
+    :param str user_exprs:
+        User-provided Python expressions string. The expressions string is
+        evaulated using :func:`eval()` with, by default, a safe locals
+        dictionary. The expressions string must evaluate to a sequence of
+        n-tuples where `n` is the number of keys provided in `user_keys`.
+        Further, the elements of each n-tuple must be type-compatible with the
+        existing (default) values in the `config` dict.
+    :param dict eval_locals:
+        Optional dictionary of locals used when :func:`eval()`-ing user
+        expressions.
+
+    :returns:
+        A config factor: a pair (2-list) of keys and values lists.
+
+        .. Note:: All sequences in the returned factor are expressed as lists,
+                  not tuples. This is done to improve YAML serialization.
+
+    :raises `desmod.config.ConfigError`: For invalid keys or value expressions.
+
+    """
     current = [fuzzy_lookup(config, user_key.strip())
                for user_key in user_keys.split(',')]
     user_values = _safe_eval(user_exprs, eval_locals=eval_locals)
@@ -88,6 +194,25 @@ def parse_user_factor(config, user_keys, user_exprs, eval_locals=None):
 
 
 def factorial_config(base_config, factors, special_key=None):
+    """Generate configurations from base config and config factors.
+
+    :param dict base_config:
+        Configuration dictionary that the generated configuration dictionaries
+        are based on. This dict is not modified; generated config dicts are
+        created with :func:`copy.deepcopy()`.
+    :param list factors:
+        Sequence of one or more configuration factors. Each configuration
+        factor is a 2-tuple of keys and values lists.
+    :param str special_key:
+        When specified, a key/value will be inserted into the generated
+        configuration dicts that identifies the "special" (unique) key/value
+        combinations of the specified `factors` used in the config dict.
+    :yields:
+        Configuration dictionaries with the cartesian product of the provided
+        `factors` applied. I.e. each yielded config dict will have a unique
+        combination of the `factors`.
+
+    """
     unrolled_factors = []
     for keys, values_list in factors:
         unrolled_factors.append([(keys, values) for values in values_list])
@@ -118,6 +243,19 @@ def get_short_special(special):
 
 
 def fuzzy_lookup(config, fuzzy_key):
+    """Lookup a config key/value using a partially specified (fuzzy) key.
+
+    The lookup will succeed iff the provided `fuzzy_key` unambiguously matches
+    the tail of a [fully-qualified] key in the `config` dict.
+
+    :param dict config: Configuration dict in which to lookup `fuzzy_key`.
+    :param str fuzzy_key: Partially specified key to lookup in `config`.
+    :returns:
+        `(key, value)` tuple. The returned key is the regular, fully-qualified
+        key name, not the provided `fuzzy_key`.
+    :raises `desmod.config.ConfigError`: For non-matching `fuzzy_key`.
+
+    """
     try:
         return fuzzy_key, config[fuzzy_key]
     except KeyError:

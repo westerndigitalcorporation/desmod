@@ -1,3 +1,14 @@
+"""Queue classes useful for modeling.
+
+A queue may be used for inter-process message passing, resource pools,
+event sequences, and many other modeling applications. The :class:`~Queue`
+class implements a simulation-aware, general-purpose queue useful for these
+modeling applications.
+
+The :class:`~PriorityQueue` class is an alternative to :class:`~Queue` that
+dequeue's items in priority-order instead of :class:`Queue`'s FIFO discipline.
+
+"""
 from collections import namedtuple
 from heapq import heappush, heappop
 
@@ -37,8 +48,25 @@ class QueueWhenFullEvent(Event):
 
 
 class Queue(object):
+    """Simulation queue of arbitrary items.
+
+    `Queue` is similar to :class:`simpy.Store`. It provides a simulation-aware
+    first-in first-out (FIFO) queue useful for passing messages between
+    simulation processes or managing a pool of objects needed by multiple
+    processes.
+
+    Items are enqueued and dequeued using :meth:`put()` and :meth:`get()`.
+
+    :param env: Simulation environment.
+    :param capacity: Capacity of the queue; infinite by default.
+    :param hard_cap:
+        If specified, the queue overflows when the `capacity` is reached.
+    :param items: Optional sequence of items to pre-populate the queue.
+
+    """
     def __init__(self, env, capacity=float('inf'), hard_cap=False, items=()):
         self.env = env
+        #: Capacity of the queue (maximum number of items).
         self.capacity = capacity
         self._hard_cap = hard_cap
         self.items = list(items)
@@ -52,18 +80,28 @@ class Queue(object):
 
     @property
     def is_empty(self):
+        """Indicates whether the queue is empty."""
         return not self.items
 
     @property
     def is_full(self):
+        """Indicates whether the queue is full."""
         return len(self.items) >= self.capacity
 
     def peek(self):
+        """Peek at the next dequeueable item."""
         return self.items[0]
 
+    #: Enqueue an item on the queue.
     put = BoundClass(QueuePutEvent)
+
+    #: Dequeue an item from the queue.
     get = BoundClass(QueueGetEvent)
+
+    #: Return an event triggered when the queue is non-empty.
     when_any = BoundClass(QueueWhenAnyEvent)
+
+    #: Return an event triggered when the queue becomes full.
     when_full = BoundClass(QueueWhenFullEvent)
 
     def _enqueue_item(self, item):
@@ -107,11 +145,30 @@ class Queue(object):
 
 
 class PriorityItem(namedtuple('PriorityItem', 'priority item')):
+    """Wrap items with explicit priority for use with :class:`~PriorityQueue`.
+
+    :param priority:
+        Orderable priority value. Smaller values are dequeued first.
+    :param item:
+        Arbitrary item. Only the `priority` is determines dequeue order, so the
+        `item` itself does not have to be orderable.
+
+    """
     def __lt__(self, other):
         return self.priority < other.priority
 
 
 class PriorityQueue(Queue):
+    """Specialized queue where items are dequeued in priority order.
+
+    Items in `PriorityQueue` must be orderable (implement
+    :meth:`~object.__lt__`). Unorderable items may be used with `PriorityQueue`
+    by wrapping with :class:`~PriorityItem`.
+
+    Items that evaluate less-than other items will be dequeued first.
+
+    """
+
     def _enqueue_item(self, item):
         heappush(self.items, item)
 

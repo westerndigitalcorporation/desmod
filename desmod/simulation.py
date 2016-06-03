@@ -1,4 +1,5 @@
 """Simulation model with batteries included."""
+
 from __future__ import division
 from contextlib import contextmanager
 import os
@@ -18,7 +19,23 @@ from desmod.workspace import Workspace
 
 
 class SimEnvironment(simpy.Environment):
+    """Simulation Environment
 
+    The :class:`SimEnvironment` class is a :class:`simpy.Environment` subclass
+    that adds some useful features:
+
+     - Access to the configuration dictionary (`config`).
+     - Access to a seeded pseudo-random number generator (`rand`).
+     - Access to the simulation timescale (`timescale`).
+     - Access to the simulation duration (`duration`).
+
+    Some models may need to share additional state with all its
+    :class:`desmod.component.Component` instances. SimEnvironment may be
+    subclassed to add additional members to achieve this sharing.
+
+    :param dict config: A fully-initialized configuration dictionary.
+
+    """
     def __init__(self, config):
         super(SimEnvironment, self).__init__()
         self.config = config
@@ -33,6 +50,14 @@ class SimEnvironment(simpy.Environment):
 
 
 def simulate(config, top_type, env_type=SimEnvironment):
+    """Initialize, elaborate, and run a simulation.
+
+    :param dict config: Configuration dictionary for the simulation.
+    :param top_type: The model's top-level Component subclass.
+    :param env_type: :class:`SimEnvironment` subclass.
+    :returns:
+        Dictionary containing the model-specific results of the simulation.
+    """
     env = env_type(config)
     result_filename = config['sim.result.file']
     result = {'config': config}
@@ -62,6 +87,24 @@ def simulate(config, top_type, env_type=SimEnvironment):
 
 
 def simulate_factors(base_config, top_type, env_type=SimEnvironment):
+    """Run multi-factor simulations in separate processes.
+
+    The `'sim.factors'` found in `base_config` are used to compose specialized
+    config dictionaries for the simulations.
+
+    The :mod:`python:multiprocessing` module is used run each simulation with a
+    separate Python process. This allows multi-factor simulations to run in
+    parallel on all available CPU cores.
+
+    :param dict base_config:
+        Base configuration dictionary to be specialized. Must contain the
+        `'sim.factors'` key/value which specifies one or more configuration
+        factor.
+    :param top_type: The model's top-level Component subclass.
+    :param env_type: :class:`SimEnvironment` subclass.
+    :returns: Sequence of result dictionaries for each simulation.
+
+    """
     factors = base_config['sim.factors']
     configs = list(factorial_config(base_config, factors, 'sim.special'))
     num_sims = len(configs)

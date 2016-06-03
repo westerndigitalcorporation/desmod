@@ -17,6 +17,30 @@ def component_to_dot(top,
                      show_hierarchy=True,
                      show_connections=True,
                      show_processes=True):
+    """Produce a dot stream from a component hierarchy.
+
+    The DOT language representation of the component instance hierarchy can
+    show the component hierarchy, the inter-component connections, components'
+    processes, or any combination thereof.
+
+    .. Note::
+        The `top` component hierarchy must be initialized and all connections
+        must be made in order for `component_to_dot()` to inspect these graphs.
+        The :meth:`desmod.component.Component.elab_hook()` method is a good
+        place to call `component_to_dot()` since the model is fully elaborated
+        and simulation has not yet started.
+
+    :param Component top: Top-level component (instance).
+    :param bool show_hierarchy:
+        Should the component hierarchy be shown in the graph.
+    :param bool show_connections:
+        Should the inter-component connections be shown in the graph.
+    :param bool show_processes:
+        Should each component's processes be shown in the graph.
+    :returns str:
+        DOT language representation of the component/connection graph(s).
+
+    """
     indent = '    '
     lines = ['strict digraph M {']
     lines.extend(indent + line
