@@ -3,6 +3,7 @@ import pytest
 from desmod.config import (ConfigError,
                            NamedManager,
                            apply_user_overrides,
+                           fuzzy_lookup,
                            factorial_config,
                            parse_user_factor,
                            parse_user_factors,
@@ -43,6 +44,30 @@ def test_named_resolve(named_mgr):
     assert set(name for name, _, _ in named_mgr.iter()) == {'www', 'xxx',
                                                             'yyy', 'zzz',
                                                             'qqq'}
+
+
+@pytest.mark.parametrize('fuzzy_key, expected', [
+    ('foo', ConfigError),
+    ('b.foo', ('a.b.foo', 1)),
+    ('d.foo', ('c.d.foo', 3)),
+    ('bar', ('a.b.bar', 2)),
+    ('o', ('e.f.o', 4)),
+    ('.o', ('e.f.o', 4)),
+    ('x.y.z', ('x.y.z', 5)),
+    ('y.z', ConfigError),
+])
+def test_fuzzy_lookup(fuzzy_key, expected):
+    config = {'a.b.foo': 1,
+              'a.b.bar': 2,
+              'c.d.foo': 3,
+              'e.f.o': 4,
+              'x.y.z': 5,
+              'w.x.y.z': 6}
+    if isinstance(expected, type) and issubclass(expected, Exception):
+        with pytest.raises(expected):
+            fuzzy_lookup(config, fuzzy_key)
+    else:
+        assert fuzzy_lookup(config, fuzzy_key) == expected
 
 
 def test_user_override(config):

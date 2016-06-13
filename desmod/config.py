@@ -121,15 +121,25 @@ def fuzzy_lookup(config, fuzzy_key):
     try:
         return fuzzy_key, config[fuzzy_key]
     except KeyError:
-        match_keys = [k for k in config if k.endswith(fuzzy_key)]
-        if len(match_keys) == 1:
-            return match_keys[0], config[match_keys[0]]
-        elif not match_keys:
+        suffix_matches = []
+        split_matches = []
+        for k in config:
+            if k.rsplit('.', 1)[-1] == fuzzy_key:
+                split_matches.append(k)
+            elif k.endswith(fuzzy_key):
+                suffix_matches.append(k)
+        if len(split_matches) == 1:
+            k = split_matches[0]
+            return k, config[k]
+        elif len(suffix_matches) == 1:
+            k = suffix_matches[0]
+            return k, config[k]
+        elif not suffix_matches + split_matches:
             raise ConfigError('Invalid config key "{}"'.format(fuzzy_key))
         else:
             raise ConfigError(
                 'Ambiguous config key "{}"; possible matches: {}'.format(
-                    fuzzy_key, ', '.join(match_keys)))
+                    fuzzy_key, ', '.join(split_matches + suffix_matches)))
 
 
 _safe_builtins = [
