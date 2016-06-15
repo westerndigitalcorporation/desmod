@@ -28,7 +28,7 @@ def component_to_dot(top,
         must be made in order for `component_to_dot()` to inspect these graphs.
         The :meth:`desmod.component.Component.elab_hook()` method is a good
         place to call `component_to_dot()` since the model is fully elaborated
-        and simulation has not yet started.
+        at that point and simulation has not yet started.
 
     :param Component top: Top-level component (instance).
     :param bool show_hierarchy:

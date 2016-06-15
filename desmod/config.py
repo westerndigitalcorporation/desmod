@@ -39,16 +39,27 @@ class ConfigError(Exception):
 class NamedManager(object):
     """Manage named configuration groups.
 
-    Any number of named configurations can be input using the name() method.
-    The resolve() method is used to compose a fully resolved configuration
-    based on one or more named configurations.
+    Any number of named configuration groups can be specified using the
+    :meth:`name()` method. The :meth:`resolve()` method is used to compose a
+    fully-resolved configuration based on one or more configuration group
+    names.
 
     """
     def __init__(self):
         self._named_configs = {}
 
     def name(self, name, deps, cfg=None):
-        """Name a new config and its dependencies."""
+        """Declare a new configuration group.
+
+        A configuration group consists of a name, a list of dependencies, and a
+        dictionary of configuration key/values. This function declares a new
+        configuration group that may be later resolved with :meth:`resolve()`.
+
+        :param str name: Name of new configuration group.
+        :param list deps: List of configuration group dependencies.
+        :param dict cfg: Configuration key/values.
+
+        """
         if name in self._named_configs:
             raise ConfigError('name already used: {}'.format(name))
         if cfg is None:

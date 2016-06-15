@@ -38,13 +38,22 @@ class SimEnvironment(simpy.Environment):
     """
     def __init__(self, config):
         super(SimEnvironment, self).__init__()
+        #: The configuration dictionary.
         self.config = config
+
+        #: The pseudo-random number generator; an instance of
+        #: :class:`random.Random`.
         self.rand = random.Random()
         if six.PY3:
             self.rand.seed(config['sim.seed'], version=1)
         else:
             self.rand.seed(config['sim.seed'])
+
+        #: Simulation timescale `(magnitude, units)` tuple. The current
+        #: simulation time is `env.now * env.timescale`.
         self.timescale = parse_time(self.config['sim.timescale'])
+
+        #: The intended simulation duration, in units of `timescale`.
         self.duration = scale_time(parse_time(config['sim.duration']),
                                    self.timescale)
 
@@ -99,7 +108,7 @@ def simulate_factors(base_config, top_type, env_type=SimEnvironment):
     :param dict base_config:
         Base configuration dictionary to be specialized. Must contain the
         `'sim.factors'` key/value which specifies one or more configuration
-        factor.
+        factors.
     :param top_type: The model's top-level Component subclass.
     :param env_type: :class:`SimEnvironment` subclass.
     :returns: Sequence of result dictionaries for each simulation.
