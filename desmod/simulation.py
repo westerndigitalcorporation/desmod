@@ -68,10 +68,11 @@ def simulate(config, top_type, env_type=SimEnvironment):
         Dictionary containing the model-specific results of the simulation.
     """
     env = env_type(config)
-    result_filename = config['sim.result.file']
+    result_filename = config.get('sim.result.file')
     result = {'config': config}
     t0 = timeit.default_timer()
-    with Workspace(config['sim.workspace'], overwrite=True):
+    with Workspace(workspace=config.get('sim.workspace', os.curdir),
+                   overwrite=config.get('sim.workspace.overwrite', False)):
         top_type.pre_init(env)
         with TraceManager(env) as tracemgr:
             try:
@@ -90,8 +91,9 @@ def simulate(config, top_type, env_type=SimEnvironment):
                 top.get_result(result)
             finally:
                 result['sim.runtime'] = timeit.default_timer() - t0
-                with open(result_filename, 'w') as result_file:
-                    yaml.dump(result, stream=result_file)
+                if result_filename is not None:
+                    with open(result_filename, 'w') as result_file:
+                        yaml.dump(result, stream=result_file)
     return result
 
 
@@ -159,7 +161,7 @@ _progress_queue = multiprocessing.Queue()
 def _progress_notification(env):
     if env.config.get('sim.progress.enable'):
         interval = env.duration / 100
-        seq = env.config['sim.seq']
+        seq = env.config.get('sim.seq')
 
         if seq is None:
             pbar = _get_progressbar(env.config)
