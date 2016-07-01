@@ -87,6 +87,7 @@ class Component(object):
 
     def __init__(self, parent, env=None, name=None, index=None, tracemgr=None):
         assert parent or (env and tracemgr)
+
         #: The simulation environment; a :class:`SimEnvironment` instance.
         self.env = parent.env if env is None else env
         self.tracemgr = parent.tracemgr if tracemgr is None else tracemgr
@@ -106,13 +107,13 @@ class Component(object):
         else:
             self.scope = parent.scope + '.' + self.name
 
+        if parent:
+            parent._children.append(self)
+
+        self._children = []
         self._processes = []
         self._connections = []
         self._not_connected = set()
-
-        #: Child Component list.
-        #: Subclasses must append all child Component instances.
-        self.children = []
 
         #: Log an error message.
         self.error = self.tracemgr.get_trace_function(
@@ -211,7 +212,7 @@ class Component(object):
         Connections are made using :meth:`connect()`.
 
         """
-        if any(child._not_connected for child in self.children):
+        if any(child._not_connected for child in self._children):
             raise NotImplementedError(
                 '{0} has unconnected children; implement '
                 '{0}.connect_children()'.format(type(self).__name__))
@@ -246,7 +247,7 @@ class Component(object):
 
         """
         self.connect_children()
-        for child in self.children:
+        for child in self._children:
             if child._not_connected:
                 raise RuntimeError('{scope}.{conn_name} not connected'.format(
                     scope=child.scope, conn_name=child._not_connected.pop()))
@@ -266,7 +267,7 @@ class Component(object):
 
     def post_simulate(self):
         """Recursively run post-simulation hooks."""
-        for child in self.children:
+        for child in self._children:
             child.post_simulate()
         self.post_sim_hook()
 
@@ -293,7 +294,7 @@ class Component(object):
         :param dict result: Result dictionary to be modified.
 
         """
-        for child in self.children:
+        for child in self._children:
             child.get_result(result)
         self.get_result_hook(result)
 

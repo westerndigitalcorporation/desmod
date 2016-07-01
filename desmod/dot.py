@@ -65,7 +65,7 @@ def _comp_hierarchy(component_group,
         label_name = '{}..{}'.format(_comp_name(component_group[0]),
                                      _comp_name(component_group[-1]))
 
-    if component.children and show_hierarchy:
+    if component._children and show_hierarchy:
         style = 'dotted'
     else:
         style = 'rounded'
@@ -81,7 +81,7 @@ def _comp_hierarchy(component_group,
         node_lines.extend('    ' + line for line in label_lines)
     node_lines[-1] += '>];'
 
-    if not component.children:
+    if not component._children:
         return node_lines
     else:
         if show_hierarchy:
@@ -133,9 +133,9 @@ def _comp_connections(component):
 
 def _child_type_groups(component):
     child_type_groups = []
-    child_types = {type(child) for child in component.children}
+    child_types = {type(child) for child in component._children}
     for child_type in child_types:
-        child_type_groups.append([child for child in component.children
+        child_type_groups.append([child for child in component._children
                                   if type(child) is child_type])
     return child_type_groups
 
