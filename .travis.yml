@@ -1,0 +1,17 @@
+language: python
+
+python:
+  - "3.5"
+
+env:
+  - TOXENV=py27
+  - TOXENV=py33
+  - TOXENV=py34
+  - TOXENV=py35
+  - TOXENV=pypy
+  - TOXENV=pypy3
+
+install:
+  - pip install tox
+
+script: tox

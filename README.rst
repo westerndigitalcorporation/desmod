@@ -14,3 +14,7 @@ Visit `desmod on GitHub <https://github.com/SanDisk-Open-Source/desmod/>`_.
 .. image:: https://readthedocs.org/projects/desmod/badge/?version=latest
     :target: http://desmod.readthedocs.io/en/latest/
     :alt: Documentation Status
+
+.. image:: https://travis-ci.org/SanDisk-Open-Source/desmod.svg?branch=master
+    :target: https://travis-ci.org/SanDisk-Open-Source/desmod
+    :alt: Build Status
