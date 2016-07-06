@@ -14,6 +14,9 @@ Contents:
    desmod.simulation
 
 
+.. include:: ../README.rst
+
+
 Indices and tables
 ==================
 

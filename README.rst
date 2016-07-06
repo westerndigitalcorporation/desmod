@@ -8,3 +8,9 @@ additional capabilities useful for composing, monitoring, configuring,
 and simulating arbitrarily complex models.
 
 __ https://simpy.readthedocs.io/en/latest/
+
+Visit `desmod on GitHub <https://github.com/SanDisk-Open-Source/desmod/>`_.
+
+.. image:: https://readthedocs.org/projects/desmod/badge/?version=latest
+    :target: http://desmod.readthedocs.io/en/latest/
+    :alt: Documentation Status
