@@ -1,26 +1,25 @@
 # encoding: utf-8
 from setuptools import setup
 
-import desmod
-
 
 setup(
     name='desmod',
-    version=desmod.__version__,
     author='Peter Grayson',
     author_email='jpgrayson@gmail.com',
     description='Discrete Event Simulation Modeling using SimPy',
     long_description='\n\n'.join(
         open(f, 'rb').read().decode('utf-8')
         for f in ['README.rst', 'LICENSE.txt']),
-    # url='https://',
-    # download_url='https://',
+    url='https://desmod.readthedocs.io/',
+    download_url='https://github.com/SanDisk-Open-Source/desmod',
     license='MIT',
-    install_requires=['simpy', 'six'],
+    setup_requires=['setuptools_scm'],
+    use_scm_version=True,
+    install_requires=['simpy', 'six', 'pyvcd'],
     packages=['desmod'],
     include_package_data=True,
     classifiers=[
-        'Development Status :: 5 - Production/Stable',
+        'Development Status :: 4 - Beta',
         'Environment :: Console',
         'Intended Audience :: Developers',
         'Intended Audience :: Education',

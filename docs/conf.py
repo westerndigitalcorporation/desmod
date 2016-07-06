@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# flake8: noqa
+from setuptools_scm import get_version
 
-import desmod
+# flake8: noqa
 
 extensions = [
     'sphinx.ext.autodoc',
@@ -21,8 +21,7 @@ master_doc = 'index'
 project = 'desmod'
 copyright = '2016, Western Digital Corporation'
 author = 'Pete Grayson'
-version = desmod.__version__
-release = desmod.__version__
+version = get_version(root='..', relative_to=__file__)
 language = None
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 pygments_style = 'sphinx'
@@ -43,7 +42,7 @@ man_pages = [
 ]
 texinfo_documents = [
     (master_doc, 'desmod', 'desmod Documentation',
-     author, 'desmod', 'One line description of project.',
+     author, 'desmod', 'Discrete Event Simulation Modeling using SimPy',
      'Miscellaneous'),
 ]
 
