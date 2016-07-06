@@ -15,7 +15,7 @@ setup(
     license='MIT',
     setup_requires=['setuptools_scm'],
     use_scm_version=True,
-    install_requires=['simpy', 'six', 'pyvcd'],
+    install_requires=['simpy', 'six', 'pyvcd', 'PyYAML'],
     packages=['desmod'],
     include_package_data=True,
     classifiers=[
