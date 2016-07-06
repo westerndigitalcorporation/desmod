@@ -1,3 +1,4 @@
+import sys
 import pytest
 
 from desmod.config import (ConfigError,
@@ -6,7 +7,6 @@ from desmod.config import (ConfigError,
                            fuzzy_lookup,
                            factorial_config,
                            parse_user_factor,
-                           parse_user_factors,
                            _safe_eval)
 
 
@@ -121,6 +121,8 @@ def test_user_override_str_int(config):
     assert config['a.b.c'] == '123'
 
 
+@pytest.mark.skipif(hasattr(sys, 'pypy_version_info'),
+                    reason="PyPy's eval() mishandles locals dict")
 def test_safe_eval_str_builtin_alias():
     assert _safe_eval('oct', str) == 'oct'
     assert _safe_eval('oct') is oct
