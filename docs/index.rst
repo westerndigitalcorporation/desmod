@@ -1,20 +1,15 @@
-Welcome to desmod's documentation!
-==================================
+Welcome to desmod
+=================
+
+.. include:: ../README.rst
 
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
-   desmod
-   desmod.config
-   desmod.component
-   desmod.dot
-   desmod.queue
-   desmod.simulation
-
-
-.. include:: ../README.rst
+   api/index
+   examples/index
 
 
 Indices and tables

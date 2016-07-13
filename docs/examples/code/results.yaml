@@ -1,0 +1,24 @@
+config:
+  car.capacity: 50
+  car.level: [5, 25]
+  gas_station.arrival_interval: 60
+  gas_station.capacity: 200
+  gas_station.count: 3
+  gas_station.pump_rate: 2
+  gas_station.pumps: 2
+  sim.duration: 500 s
+  sim.log.enable: true
+  sim.log.file: sim.log
+  sim.log.format: '{level:7} {ts:.3f} {ts_unit}: {scope:<16}:'
+  sim.log.level: INFO
+  sim.result.file: results.yaml
+  sim.seed: 42
+  sim.timescale: s
+  sim.workspace: .
+  tanker.capacity: 200
+  tanker.count: 2
+  tanker.pump_rate: 10
+  tanker.travel_time: 100
+sim.exception: null
+sim.runtime: 0.03544525199686177
+sim.time: 500
