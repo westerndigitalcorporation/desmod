@@ -15,7 +15,6 @@ import yaml
 from desmod.config import factorial_config
 from desmod.timescale import parse_time, scale_time
 from desmod.tracer import TraceManager
-from desmod.workspace import Workspace
 
 
 class SimEnvironment(simpy.Environment):
@@ -58,6 +57,26 @@ class SimEnvironment(simpy.Environment):
                                    self.timescale)
 
 
+class _Workspace(object):
+    """Context manager for workspace directory managment."""
+    def __init__(self, config):
+        self.workspace = config.get('sim.workspace', os.curdir)
+        self.overwrite = config.get('sim.workspace.overwrite', False)
+        self.prev_dir = os.getcwd()
+
+    def __enter__(self):
+        if os.path.relpath(self.workspace) != os.curdir:
+            workspace_exists = os.path.isdir(self.workspace)
+            if self.overwrite and workspace_exists:
+                shutil.rmtree(self.workspace)
+            if self.overwrite or not workspace_exists:
+                os.makedirs(self.workspace)
+            os.chdir(self.workspace)
+
+    def __exit__(self, *exc):
+        os.chdir(self.prev_dir)
+
+
 def simulate(config, top_type, env_type=SimEnvironment):
     """Initialize, elaborate, and run a simulation.
 
@@ -71,8 +90,7 @@ def simulate(config, top_type, env_type=SimEnvironment):
     result_filename = config.get('sim.result.file')
     result = {'config': config}
     t0 = timeit.default_timer()
-    with Workspace(workspace=config.get('sim.workspace', os.curdir),
-                   overwrite=config.get('sim.workspace.overwrite', False)):
+    with _Workspace(config):
         top_type.pre_init(env)
         with TraceManager(env) as tracemgr:
             try:
