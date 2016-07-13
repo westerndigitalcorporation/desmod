@@ -294,11 +294,12 @@ def fuzzy_lookup(config, fuzzy_key):
 _safe_builtins = [
     'abs', 'bin', 'bool', 'dict', 'float', 'frozenset', 'hex', 'int', 'len',
     'list', 'max', 'min', 'oct', 'ord', 'range', 'round', 'set', 'str', 'sum',
-    'tuple', 'tuple', 'zip',
+    'tuple', 'tuple', 'zip', 'True', 'False',
 ]
 
 _default_eval_locals = {name: getattr(builtins, name)
-                        for name in _safe_builtins}
+                        for name in _safe_builtins
+                        if hasattr(builtins, name)}
 
 
 def _safe_eval(expr, coerce_type=None, eval_locals=None):

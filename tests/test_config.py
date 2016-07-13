@@ -109,6 +109,10 @@ def test_user_override_int_invalid(config):
 def test_user_override_bool(config):
     apply_user_overrides(config, [('def.baz', '1')])
     assert config['abc.def.baz'] is True
+    apply_user_overrides(config, [('def.baz', 'True')])
+    assert config['abc.def.baz'] is True
+    apply_user_overrides(config, [('def.baz', 'False')])
+    assert config['abc.def.baz'] is False
 
 
 def test_user_override_str(config):
