@@ -10,6 +10,7 @@ Contents:
 
    api/index
    examples/index
+   history
 
 
 Indices and tables
