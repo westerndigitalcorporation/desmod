@@ -70,6 +70,7 @@ class LogTracer(Tracer):
 
     def open(self):
         log_filename = self.env.config.get('sim.log.file')
+        buffering = self.env.config.get('sim.log.buffering', -1)
         self.max_level = self.levels[self.env.config.get('sim.log.level',
                                                          'INFO')]
         self.format_str = self.env.config.get('sim.log.format',
@@ -81,7 +82,7 @@ class LogTracer(Tracer):
             self.ts_unit = '({}{})'.format(ts_n, ts_unit)
 
         if log_filename:
-            self.file = open(log_filename, 'w')
+            self.file = open(log_filename, 'w', buffering)
             self.should_close = True
         else:
             self.file = sys.stderr
