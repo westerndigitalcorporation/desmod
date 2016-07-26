@@ -62,14 +62,16 @@ class Queue(object):
     :param hard_cap:
         If specified, the queue overflows when the `capacity` is reached.
     :param items: Optional sequence of items to pre-populate the queue.
+    :param name: Optional name to associate with the queue.
 
     """
-    def __init__(self, env, capacity=float('inf'), hard_cap=False, items=()):
+    def __init__(self, env, capacity=float('inf'), hard_cap=False, items=(), name=None):
         self.env = env
         #: Capacity of the queue (maximum number of items).
         self.capacity = capacity
         self._hard_cap = hard_cap
         self.items = list(items)
+        self.name = name
         self._putters = []
         self._getters = []
         self._any_waiters = []
@@ -142,6 +144,12 @@ class Queue(object):
             for when_full_ev in self._full_waiters:
                 when_full_ev.succeed()
             del self._full_waiters[:]
+
+    def __str__(self):
+        return ('Queue: name={0.name}'
+                ' size={1}'
+                ' capacity={0.capacity}'
+                ')'.format(self, len(self.items)))
 
 
 class PriorityItem(namedtuple('PriorityItem', 'priority item')):
