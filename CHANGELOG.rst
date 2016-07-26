@@ -1,6 +1,13 @@
 Changlog
 ========
 
+desmod-0.1.2 (2016-07-26)
+-------------------------
+* [NEW] Add "sim.log.buffering" configuration
+* [FIX] Repair unit tests (pytest-flake8 dependency)
+* [NEW] New optional `Queue.name` attribute
+* [FIX] Use `repr()` for exception string in result dict
+
 desmod-0.1.1 (2016-07-14)
 -------------------------
 * [FIX] Using 'True' and 'False' in expressions from the command line
