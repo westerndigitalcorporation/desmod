@@ -100,7 +100,7 @@ def simulate(config, top_type, env_type=SimEnvironment):
                     env.run(until=env.duration)
                     top.post_simulate()
             except Exception as e:
-                result['sim.exception'] = str(e)
+                result['sim.exception'] = repr(e)
                 raise
             else:
                 result['sim.exception'] = None
