@@ -65,7 +65,8 @@ class Queue(object):
     :param name: Optional name to associate with the queue.
 
     """
-    def __init__(self, env, capacity=float('inf'), hard_cap=False, items=(), name=None):
+    def __init__(self, env, capacity=float('inf'), hard_cap=False, items=(),
+                 name=None):
         self.env = env
         #: Capacity of the queue (maximum number of items).
         self.capacity = capacity
