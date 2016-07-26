@@ -2,8 +2,7 @@
 
 pytest >= 2.9.0
 pytest-cov >= 2.2.1
-pytest-flake8 >= 0.2
-flake8 < 3.0.0
+pytest-flake8 >= 0.6
 tox >= 2.3.1
 setuptools-scm >= 1.11.1
 Sphinx
