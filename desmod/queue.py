@@ -19,32 +19,56 @@ from simpy.core import BoundClass
 class QueuePutEvent(Event):
     def __init__(self, queue, item):
         super(QueuePutEvent, self).__init__(queue.env)
+        self.queue = queue
         self.item = item
         self.callbacks.append(queue._trigger_get)
         queue._putters.append(self)
         queue._trigger_put()
 
+    def cancel(self):
+        if not self.triggered:
+            self.queue._putters.remove(self)
+            self.callbacks = None
+
 
 class QueueGetEvent(Event):
     def __init__(self, queue):
         super(QueueGetEvent, self).__init__(queue.env)
+        self.queue = queue
         self.callbacks.append(queue._trigger_put)
         queue._getters.append(self)
         queue._trigger_get()
+
+    def cancel(self):
+        if not self.triggered:
+            self.queue._getters.remove(self)
+            self.callbacks = None
 
 
 class QueueWhenAnyEvent(Event):
     def __init__(self, queue):
         super(QueueWhenAnyEvent, self).__init__(queue.env)
+        self.queue = queue
         queue._any_waiters.append(self)
         queue._trigger_when_any()
+
+    def cancel(self):
+        if not self.triggered:
+            self.queue._any_waiters.remove(self)
+            self.callbacks = None
 
 
 class QueueWhenFullEvent(Event):
     def __init__(self, queue):
         super(QueueWhenFullEvent, self).__init__(queue.env)
+        self.queue = queue
         queue._full_waiters.append(self)
         queue._trigger_when_full()
+
+    def cancel(self):
+        if not self.triggered:
+            self.queue._full_waiters.remove(self)
+            self.callbacks = None
 
 
 class Queue(object):
