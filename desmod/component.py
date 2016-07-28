@@ -64,6 +64,10 @@ component could, for example, be used as a connection object.
 """
 
 
+class ConnectError(Exception):
+    pass
+
+
 class Component(object):
     """Building block for composing models.
 
@@ -198,11 +202,21 @@ class Component(object):
         if src_connection is None:
             src_connection = dst_connection
         if conn_obj is None:
-            conn_obj = getattr(src, src_connection)
-        setattr(dst, dst_connection, conn_obj)
-        dst._not_connected.remove(dst_connection)
-        dst._connections.append(
-            (dst_connection, src, src_connection, conn_obj))
+            if hasattr(src, src_connection):
+                conn_obj = getattr(src, src_connection)
+            else:
+                raise ConnectError(
+                    'src "{}" (class {}) does not have attr "{}"'.format(
+                        src.scope, type(src).__name__, src_connection))
+        if dst_connection in dst._not_connected:
+            setattr(dst, dst_connection, conn_obj)
+            dst._not_connected.remove(dst_connection)
+            dst._connections.append(
+                (dst_connection, src, src_connection, conn_obj))
+        else:
+            raise ConnectError(
+                'dst "{}" (class {}) does not declare connection "{}"'.format(
+                    dst.scope, type(dst).__name__, dst_connection))
 
     def connect_children(self):
         """Make connections for descendant components.
@@ -213,7 +227,7 @@ class Component(object):
 
         """
         if any(child._not_connected for child in self._children):
-            raise NotImplementedError(
+            raise ConnectError(
                 '{0} has unconnected children; implement '
                 '{0}.connect_children()'.format(type(self).__name__))
 
@@ -249,7 +263,7 @@ class Component(object):
         self.connect_children()
         for child in self._children:
             if child._not_connected:
-                raise RuntimeError('{scope}.{conn_name} not connected'.format(
+                raise ConnectError('{scope}.{conn_name} not connected'.format(
                     scope=child.scope, conn_name=child._not_connected.pop()))
             child.elaborate()
         for proc, args, kwargs in self._processes:
