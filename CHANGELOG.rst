@@ -1,6 +1,12 @@
 Changlog
 ========
 
+desmod-0.1.3 (2016-07-28)
+-------------------------
+* [NEW] Cancelable Queue events
+* [CHANGE] Connection errors now raise ConnectError
+* [FIX] Update pytest-flake8 and flake8 dependencies (yet again)
+
 desmod-0.1.2 (2016-07-26)
 -------------------------
 * [NEW] Add "sim.log.buffering" configuration
