@@ -9,7 +9,7 @@ setup(
     description='Discrete Event Simulation Modeling using SimPy',
     long_description='\n\n'.join(
         open(f, 'rb').read().decode('utf-8')
-        for f in ['README.rst', 'LICENSE.txt']),
+        for f in ['README.rst', 'LICENSE.txt', 'CHANGELOG.rst']),
     url='https://desmod.readthedocs.io/',
     download_url='https://github.com/SanDisk-Open-Source/desmod',
     license='MIT',
