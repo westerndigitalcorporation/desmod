@@ -6,6 +6,7 @@ import os
 import multiprocessing
 import random
 import shutil
+import sys
 import timeit
 
 import simpy
@@ -134,6 +135,12 @@ def simulate_factors(base_config, top_type, env_type=SimEnvironment):
     :returns: Sequence of result dictionaries for each simulation.
 
     """
+    if sys.platform == 'win32' and base_config.get('sim.progress.enable'):
+        import warnings
+        warnings.warn(
+            'Disabling sim.progress.enable. Progress bar broken on win32 with '
+            'simulate_factors().')
+        base_config['sim.progress.enable'] = False
     factors = base_config['sim.factors']
     configs = list(factorial_config(base_config, factors, 'sim.special'))
     num_sims = len(configs)
@@ -148,7 +155,7 @@ def simulate_factors(base_config, top_type, env_type=SimEnvironment):
     pool = multiprocessing.Pool(pool_size)
     sim_args = [(config, top_type, env_type) for config in configs]
     promise = pool.map_async(_simulate_trampoline, sim_args)
-    if config.get('sim.progress.enable'):
+    if base_config.get('sim.progress.enable'):
         _consume_progress(base_config, num_sims)
     return promise.get()
 
@@ -172,6 +179,10 @@ def _get_progressbar(config):
     return pbar
 
 
+# When using simulate_factors(), each simulation subprocess sends progress
+# notifications to the main/parent process via this queue.
+# Unfortunately, this mechanism does not work on Windows with spawned
+# subprocesses using map_async().
 _progress_queue = multiprocessing.Queue()
 
 
