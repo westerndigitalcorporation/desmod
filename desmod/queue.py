@@ -6,7 +6,7 @@ class implements a simulation-aware, general-purpose queue useful for these
 modeling applications.
 
 The :class:`~PriorityQueue` class is an alternative to :class:`~Queue` that
-dequeue's items in priority-order instead of :class:`Queue`'s FIFO discipline.
+dequeues items in priority-order instead of :class:`Queue`'s FIFO discipline.
 
 """
 from collections import namedtuple
@@ -116,7 +116,7 @@ class Queue(object):
         return len(self.items) >= self.capacity
 
     def peek(self):
-        """Peek at the next dequeueable item."""
+        """Peek at the next item in the queue."""
         return self.items[0]
 
     #: Enqueue an item on the queue.

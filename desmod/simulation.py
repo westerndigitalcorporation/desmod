@@ -59,7 +59,7 @@ class SimEnvironment(simpy.Environment):
 
 
 class _Workspace(object):
-    """Context manager for workspace directory managment."""
+    """Context manager for workspace directory management."""
     def __init__(self, config):
         self.workspace = config.get('sim.workspace', os.curdir)
         self.overwrite = config.get('sim.workspace.overwrite', False)

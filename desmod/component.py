@@ -81,7 +81,7 @@ class Component(object):
         Optional index of Component. This is used when multiple sibling
         components of the same type are instantiated as an array/list.
     :param TraceManager tracemgr:
-        The :func:`desmod.simulataion.simulate()` function is responsible for
+        The :func:`desmod.simulation.simulate()` function is responsible for
         this TraceManager parameter.
 
     """
@@ -101,7 +101,7 @@ class Component(object):
                      ('' if index is None else str(index)))
 
         #: Index of Component instance within group of sibling instances.
-        #: Will be None for ungrouped Components.
+        #: Will be None for un-grouped Components.
         self.index = index
 
         if parent is None or not parent.scope:
@@ -243,7 +243,7 @@ class Component(object):
 
     @classmethod
     def pre_init(cls, env):
-        """Overridable class method called prior to model initialization`.
+        """Override-able class method called prior to model initialization.
 
         Component subclasses may override this classmethod to gain access
         to the simulation environment (`env`) prior to :meth:`__init__()` being
@@ -273,8 +273,8 @@ class Component(object):
     def elab_hook(self):
         """Hook called after elaboration and before simulation phase.
 
-        Component subclasses may override `elab_hook()` to inject behavior
-        after elaboration, but prior to simulation.
+        Component subclasses may override :meth:`elab_hook()` to inject
+        behavior after elaboration, but prior to simulation.
 
         """
         pass
@@ -299,7 +299,7 @@ class Component(object):
     def get_result(self, result):
         """Recursively compose simulation result dict.
 
-        Upon successful compeltion of the simulation phase, each component in
+        Upon successful completion of the simulation phase, each component in
         the model has the opportunity to add-to or modify the `result` dict via
         its :meth:`get_result_hook` method.
 

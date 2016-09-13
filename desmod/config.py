@@ -89,7 +89,7 @@ class NamedManager(object):
 def apply_user_overrides(config, overrides, eval_locals=None):
     """Apply user-provided overrides to a configuration.
 
-    The user-provided `overrides` list are first verified for validitiy and
+    The user-provided `overrides` list are first verified for validity and
     then applied to the the provided `config` dictionary.
 
     Each user-provided key must already exist in `config`. The
@@ -162,7 +162,7 @@ def parse_user_factor(config, user_keys, user_exprs, eval_locals=None):
         that the returned keys will always be fully-qualified (non-fuzzy).
     :param str user_exprs:
         User-provided Python expressions string. The expressions string is
-        evaulated using :func:`eval()` with, by default, a safe locals
+        evaluated using :func:`eval()` with, by default, a safe locals
         dictionary. The expressions string must evaluate to a sequence of
         n-tuples where `n` is the number of keys provided in `user_keys`.
         Further, the elements of each n-tuple must be type-compatible with the
