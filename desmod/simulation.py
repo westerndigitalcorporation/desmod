@@ -137,17 +137,10 @@ def simulate_factors(base_config, top_type,
     :returns: Sequence of result dictionaries for each simulation.
 
     """
-    if sys.platform == 'win32' and base_config.get('sim.progress.enable'):
-        import warnings
-        warnings.warn(
-            'Disabling sim.progress.enable. Progress bar broken on win32 with '
-            'simulate_factors().')
-        base_config['sim.progress.enable'] = False
     factors = base_config['sim.factors']
     configs = list(factorial_config(base_config, factors, 'sim.special'))
     base_workspace = base_config['sim.workspace']
     for seq, config in enumerate(configs):
-        config['sim.seq'] = seq
         config['sim.factors'] = []
         config['sim.workspace'] = os.path.join(base_workspace, str(seq))
     if os.path.isdir(base_workspace):
@@ -169,14 +162,26 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
     :returns: Sequence of result dictionaries for each simulation.
 
     """
+    progress_enable = any(config.get('sim.progress.enable')
+                          for config in configs)
+    if sys.platform == 'win32' and progress_enable:
+        import warnings
+        warnings.warn(
+            'Disabling sim.progress.enable. Progress bar broken on win32 with '
+            'simulate_many().')
+        progress_enable = False
     pool_size = min(len(configs), multiprocessing.cpu_count())
     if jobs is not None:
         pool_size = min(pool_size, jobs)
     pool = multiprocessing.Pool(pool_size)
-    sim_args = [(config, top_type, env_type) for config in configs]
+    sim_args = []
+    for seq, config in enumerate(configs):
+        config['sim.seq'] = seq
+        config['sim.progress.enable'] = progress_enable
+        sim_args.append((config, top_type, env_type))
     promise = pool.map_async(_simulate_trampoline, sim_args)
-    if configs[0].get('sim.progress.enable'):
-        _consume_progress(configs, jobs)
+    if progress_enable:
+        _consume_progress(configs)
     return promise.get()
 
 
@@ -242,15 +247,15 @@ def _progress_notification(env):
         yield None
 
 
-def _consume_progress(config, num_sims):
-    pbar = _get_progressbar(config)
-    notifiers = {seq: 0 for seq in range(num_sims)}
+def _consume_progress(configs):
+    pbar = _get_progressbar(configs[0])
+    notifiers = {config['sim.seq']: 0 for config in configs}
     total_progress = 0
 
     while total_progress < 1:
         seq, progress = _progress_queue.get()
         notifiers[seq] = progress
-        total_progress = sum(notifiers.values()) / num_sims
+        total_progress = sum(notifiers.values()) / len(notifiers)
         pbar.update(total_progress)
 
     pbar.finish()
