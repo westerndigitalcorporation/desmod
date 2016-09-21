@@ -1,6 +1,13 @@
 Changlog
 ========
 
+desmod-0.1.4 (2016-09-21)
+-------------------------
+* [NEW] Add desmod.simulation.simulate_many()
+* [FIX] Repair various docstring typos
+* [FIX] Disable progress bar for simulate_factors() on Windows
+* [NEW] Add CHANGELOG.txt to long description in setup.py
+
 desmod-0.1.3 (2016-07-28)
 -------------------------
 * [NEW] Cancelable Queue events
