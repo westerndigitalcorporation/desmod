@@ -19,7 +19,7 @@ from desmod.tracer import TraceManager
 
 
 class SimEnvironment(simpy.Environment):
-    """Simulation Environment
+    """Simulation Environment.
 
     The :class:`SimEnvironment` class is a :class:`simpy.Environment` subclass
     that adds some useful features:
@@ -116,7 +116,8 @@ def simulate(config, top_type, env_type=SimEnvironment):
     return result
 
 
-def simulate_factors(base_config, top_type, env_type=SimEnvironment):
+def simulate_factors(base_config, top_type,
+                     env_type=SimEnvironment, jobs=None):
     """Run multi-factor simulations in separate processes.
 
     The `'sim.factors'` found in `base_config` are used to compose specialized
@@ -132,6 +133,7 @@ def simulate_factors(base_config, top_type, env_type=SimEnvironment):
         factors.
     :param top_type: The model's top-level Component subclass.
     :param env_type: :class:`SimEnvironment` subclass.
+    :param int jobs: User specified number of concurent processes.
     :returns: Sequence of result dictionaries for each simulation.
 
     """
@@ -143,7 +145,6 @@ def simulate_factors(base_config, top_type, env_type=SimEnvironment):
         base_config['sim.progress.enable'] = False
     factors = base_config['sim.factors']
     configs = list(factorial_config(base_config, factors, 'sim.special'))
-    num_sims = len(configs)
     base_workspace = base_config['sim.workspace']
     for seq, config in enumerate(configs):
         config['sim.seq'] = seq
@@ -151,12 +152,31 @@ def simulate_factors(base_config, top_type, env_type=SimEnvironment):
         config['sim.workspace'] = os.path.join(base_workspace, str(seq))
     if os.path.isdir(base_workspace):
         shutil.rmtree(base_workspace)
-    pool_size = min(num_sims, multiprocessing.cpu_count())
+    return simulate_many(configs, top_type, env_type, jobs)
+
+
+def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
+    """Run multiple experiments in separate processes.
+
+    The :mod:`python:multiprocessing` module is used run each simulation with a
+    separate Python process. This allows multi-factor simulations to run in
+    parallel on all available CPU cores.
+
+    :param dict configs: list of configuration dictionary for the simulation.
+    :param top_type: The model's top-level Component subclass.
+    :param env_type: :class:`SimEnvironment` subclass.
+    :param int jobs: User specified number of concurent processes.
+    :returns: Sequence of result dictionaries for each simulation.
+
+    """
+    pool_size = min(len(configs), multiprocessing.cpu_count())
+    if jobs is not None:
+        pool_size = min(pool_size, jobs)
     pool = multiprocessing.Pool(pool_size)
     sim_args = [(config, top_type, env_type) for config in configs]
     promise = pool.map_async(_simulate_trampoline, sim_args)
-    if base_config.get('sim.progress.enable'):
-        _consume_progress(base_config, num_sims)
+    if configs[0].get('sim.progress.enable'):
+        _consume_progress(configs, jobs)
     return promise.get()
 
 
