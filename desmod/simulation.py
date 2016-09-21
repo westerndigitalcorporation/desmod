@@ -133,7 +133,7 @@ def simulate_factors(base_config, top_type,
         factors.
     :param top_type: The model's top-level Component subclass.
     :param env_type: :class:`SimEnvironment` subclass.
-    :param jobs: Indicates user preference for number of concurent processes
+    :param int jobs: User specified number of concurent processes.
     :returns: Sequence of result dictionaries for each simulation.
 
     """
@@ -156,7 +156,7 @@ def simulate_factors(base_config, top_type,
 
 
 def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
-    """Run multi-factor simulations in separate processes.
+    """Run multiple experiments in separate processes.
 
     The :mod:`python:multiprocessing` module is used run each simulation with a
     separate Python process. This allows multi-factor simulations to run in
@@ -165,7 +165,7 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
     :param dict configs: list of configuration dictionary for the simulation.
     :param top_type: The model's top-level Component subclass.
     :param env_type: :class:`SimEnvironment` subclass.
-    :param jobs: Indicates user preference for number of concurent processes
+    :param int jobs: User specified number of concurent processes.
     :returns: Sequence of result dictionaries for each simulation.
 
     """
@@ -175,7 +175,7 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
     pool = multiprocessing.Pool(pool_size)
     sim_args = [(config, top_type, env_type) for config in configs]
     promise = pool.map_async(_simulate_trampoline, sim_args)
-    if config.get('sim.progress.enable'):
+    if configs[0].get('sim.progress.enable'):
         _consume_progress(configs, jobs)
     return promise.get()
 
