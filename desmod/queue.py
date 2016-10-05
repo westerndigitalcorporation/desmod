@@ -106,6 +106,16 @@ class Queue(object):
         BoundClass.bind_early(self)
 
     @property
+    def size(self):
+        """Number of items in queue."""
+        return len(self.items)
+
+    @property
+    def remaining(self):
+        """Remaining queue capacity."""
+        return self.capacity - len(self.items)
+
+    @property
     def is_empty(self):
         """Indicates whether the queue is empty."""
         return not self.items
