@@ -17,7 +17,10 @@ def attach(scope, target, callbacks, **hints):
     elif isinstance(target, simpy.Resource):
         _attach_resource_users(target, callbacks)
     elif isinstance(target, Queue):
-        _attach_queue_items(target, callbacks)
+        if hints.get('trace_remaining', False):
+            _attach_queue_remaining(target, callbacks)
+        else:
+            _attach_queue_size(target, callbacks)
     else:
         raise TypeError(
             'Cannot probe {} of type {}'.format(scope, type(target)))
@@ -110,11 +113,22 @@ def _attach_resource_users(resource, callbacks):
         resource._do_put = make_wrapper(resource._do_put)
 
 
-def _attach_queue_items(queue, callbacks):
+def _attach_queue_size(queue, callbacks):
     if callbacks:
         def hook():
             for callback in callbacks:
-                callback(len(queue.items))
+                callback(queue.size)
+
+        queue._put_hook = queue._get_hook = hook
+    else:
+        queue._put_hook = queue._get_hook = None
+
+
+def _attach_queue_remaining(queue, callbacks):
+    if callbacks:
+        def hook():
+            for callback in callbacks:
+                callback(queue.remaining)
 
         queue._put_hook = queue._get_hook = hook
     else:
