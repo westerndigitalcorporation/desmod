@@ -45,6 +45,18 @@ class QueueGetEvent(Event):
             self.callbacks = None
 
 
+class QueueWhenNewEvent(Event):
+    def __init__(self, queue):
+        super(QueueWhenNewEvent, self).__init__(queue.env)
+        self.queue = queue
+        queue._new_waiters.append(self)
+
+    def cancel(self):
+        if not self.triggered:
+            self.queue._new_waiters.remove(self)
+            self.callbacks = None
+
+
 class QueueWhenAnyEvent(Event):
     def __init__(self, queue):
         super(QueueWhenAnyEvent, self).__init__(queue.env)
@@ -99,6 +111,7 @@ class Queue(object):
         self.name = name
         self._putters = []
         self._getters = []
+        self._new_waiters = []
         self._any_waiters = []
         self._full_waiters = []
         self._put_hook = None
@@ -135,6 +148,9 @@ class Queue(object):
     #: Dequeue an item from the queue.
     get = BoundClass(QueueGetEvent)
 
+    #: Return an event triggered when a new item is put into the queue.
+    when_new = BoundClass(QueueWhenNewEvent)
+
     #: Return an event triggered when the queue is non-empty.
     when_any = BoundClass(QueueWhenAnyEvent)
 
@@ -153,6 +169,7 @@ class Queue(object):
                 put_ev = self._putters.pop(0)
                 put_ev.succeed()
                 self._enqueue_item(put_ev.item)
+                self._trigger_when_new()
                 self._trigger_when_any()
                 self._trigger_when_full()
                 if self._put_hook:
@@ -167,6 +184,11 @@ class Queue(object):
             get_ev.succeed(item)
             if self._get_hook:
                 self._get_hook()
+
+    def _trigger_when_new(self):
+        for when_new_ev in self._new_waiters:
+            when_new_ev.succeed()
+        del self._new_waiters[:]
 
     def _trigger_when_any(self):
         if self.items:
