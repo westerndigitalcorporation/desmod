@@ -1,6 +1,12 @@
 Changlog
 ========
 
+desmod-0.1.5 (2016-10-17)
+-------------------------
+* [NEW] Add Queue.size and Queue.remaining properties (#9)
+* [NEW] Trace Queue's remaining capacity (#10)
+* [NEW] Add Queue.when_new() event (#11)
+
 desmod-0.1.4 (2016-09-21)
 -------------------------
 * [NEW] Add desmod.simulation.simulate_many()
