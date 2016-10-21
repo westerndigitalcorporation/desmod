@@ -88,7 +88,6 @@ def simulate(config, top_type, env_type=SimEnvironment):
         Dictionary containing the model-specific results of the simulation.
     """
     env = env_type(config)
-    result_filename = config.get('sim.result.file')
     result = {'config': config}
     t0 = timeit.default_timer()
     with _Workspace(config):
@@ -110,9 +109,7 @@ def simulate(config, top_type, env_type=SimEnvironment):
                 top.get_result(result)
             finally:
                 result['sim.runtime'] = timeit.default_timer() - t0
-                if result_filename is not None:
-                    with open(result_filename, 'w') as result_file:
-                        yaml.dump(result, stream=result_file)
+                _dump_result(config.get('sim.result.file'), result)
     return result
 
 
@@ -187,6 +184,12 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
 
 def _simulate_trampoline(args):
     return simulate(*args)
+
+
+def _dump_result(filename, result):
+    if filename is not None:
+        with open(filename, 'w') as result_file:
+            yaml.safe_dump(result, stream=result_file)
 
 
 def _get_progressbar(config):
