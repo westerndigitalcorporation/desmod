@@ -87,10 +87,10 @@ def simulate(config, top_type, env_type=SimEnvironment):
     :returns:
         Dictionary containing the model-specific results of the simulation.
     """
-    env = env_type(config)
     result = {'config': config}
     t0 = timeit.default_timer()
     with _Workspace(config):
+        env = env_type(config)
         top_type.pre_init(env)
         with TraceManager(env) as tracemgr:
             try:
