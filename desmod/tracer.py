@@ -49,11 +49,8 @@ class Tracer(object):
     def activate_trace(self, scope, **hints):
         raise NotImplementedError()
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exc):
-        self.close()
+    def trace_exception(self):
+        pass
 
 
 class LogTracer(Tracer):
@@ -90,16 +87,6 @@ class LogTracer(Tracer):
             self.file = sys.stderr
             self.should_close = False
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if exc_type and self.enabled:
-            tb_lines = traceback.format_exception(exc_type, exc_val, exc_tb)
-            print(self.format_str.format(level='ERROR',
-                                         ts=self.env.now,
-                                         ts_unit=self.ts_unit,
-                                         scope='Exception'),
-                  tb_lines[-1], '\n', *tb_lines, file=self.file)
-        self.close()
-
     def _close(self):
         if self.should_close:
             self.file.close()
@@ -135,6 +122,16 @@ class LogTracer(Tracer):
             print(format_str.format(ts=self.env.now), *value, file=self.file)
 
         return trace_callback
+
+    def trace_exception(self):
+        tb_lines = traceback.format_exception(*sys.exc_info())
+        print(self.format_str.format(level='ERROR',
+                                     ts=self.env.now,
+                                     ts_unit=self.ts_unit,
+                                     scope='Exception'),
+              tb_lines[-1], '\n',
+              *tb_lines,
+              file=self.file)
 
 
 class VCDTracer(Tracer):
@@ -232,18 +229,13 @@ class TraceManager(object):
     def __init__(self, env):
         self.tracers = []
         try:
-            for tracer_type in [LogTracer, VCDTracer]:
-                self.tracers.append(tracer_type(env))
+            self.log_tracer = LogTracer(env)
+            self.tracers.append(self.log_tracer)
+            self.vcd_tracer = VCDTracer(env)
+            self.tracers.append(self.vcd_tracer)
         except:
             self.close()
             raise
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exc):
-        for tracer in self.tracers:
-            tracer.__exit__(*exc)
 
     def close(self):
         for tracer in self.tracers:
@@ -273,3 +265,8 @@ class TraceManager(object):
                 callback(*value)
 
         return trace_function
+
+    def trace_exception(self):
+        for tracer in self.tracers:
+            if tracer.enabled:
+                tracer.trace_exception()

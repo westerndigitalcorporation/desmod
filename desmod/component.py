@@ -80,21 +80,17 @@ class Component(object):
     :param int index:
         Optional index of Component. This is used when multiple sibling
         components of the same type are instantiated as an array/list.
-    :param TraceManager tracemgr:
-        The :func:`desmod.simulation.simulate()` function is responsible for
-        this TraceManager parameter.
 
     """
 
     #: Short/friendly name used in the scope (class attribute).
     base_name = ''
 
-    def __init__(self, parent, env=None, name=None, index=None, tracemgr=None):
-        assert parent or (env and tracemgr)
+    def __init__(self, parent, env=None, name=None, index=None):
+        assert parent or env
 
         #: The simulation environment; a :class:`SimEnvironment` instance.
         self.env = parent.env if env is None else env
-        self.tracemgr = parent.tracemgr if tracemgr is None else tracemgr
 
         #: The component name (str).
         self.name = ((self.base_name if name is None else name) +
@@ -120,16 +116,16 @@ class Component(object):
         self._not_connected = set()
 
         #: Log an error message.
-        self.error = self.tracemgr.get_trace_function(
+        self.error = self.env.tracemgr.get_trace_function(
             self.scope, log={'level': 'ERROR'})
         #: Log a warning message.
-        self.warn = self.tracemgr.get_trace_function(
+        self.warn = self.env.tracemgr.get_trace_function(
             self.scope, log={'level': 'WARNING'})
         #: Log an informative message.
-        self.info = self.tracemgr.get_trace_function(
+        self.info = self.env.tracemgr.get_trace_function(
             self.scope, log={'level': 'INFO'})
         #: Log a debug message.
-        self.debug = self.tracemgr.get_trace_function(
+        self.debug = self.env.tracemgr.get_trace_function(
             self.scope, log={'level': 'DEBUG'})
 
     def add_process(self, process_func, *args, **kwargs):
@@ -235,11 +231,11 @@ class Component(object):
         if target is None:
             target = getattr(self, name)
         target_scope = '.'.join([self.scope, name])
-        self.tracemgr.auto_probe(target_scope, target, **hints)
+        self.env.tracemgr.auto_probe(target_scope, target, **hints)
 
     def get_trace_function(self, name, **hints):
         target_scope = '.'.join([self.scope, name])
-        return self.tracemgr.get_trace_function(target_scope, **hints)
+        return self.env.tracemgr.get_trace_function(target_scope, **hints)
 
     @classmethod
     def pre_init(cls, env):

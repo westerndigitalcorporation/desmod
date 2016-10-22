@@ -1,7 +1,7 @@
 """Simulation model with batteries included."""
 
 from __future__ import division
-from contextlib import contextmanager
+from contextlib import contextmanager, closing
 import os
 import multiprocessing
 import random
@@ -61,6 +61,9 @@ class SimEnvironment(simpy.Environment):
         #: The intended simulation duration, in units of `timescale`.
         self.duration = scale_time(parse_time(duration), self.timescale)
 
+        #: TraceManager instance.
+        self.tracemgr = TraceManager(self)
+
     def time(self, unit='s'):
         """The current simulation time scaled to specified unit.
 
@@ -92,40 +95,55 @@ class _Workspace(object):
         os.chdir(self.prev_dir)
 
 
-def simulate(config, top_type, env_type=SimEnvironment):
+def simulate(config, top_type, env_type=SimEnvironment, reraise=True):
     """Initialize, elaborate, and run a simulation.
+
+     All exceptions are caught by `simulate()` so they can be logged and
+     captured in the result file. By default, any unhandled exception caught by
+     `simulate()` will be re-raised. Setting `reraise` to False prevents
+     exceptions from propagating to the caller. Instead, the returned result
+     dict will indicate if an exception occurred via the 'sim.exception' item.
 
     :param dict config: Configuration dictionary for the simulation.
     :param top_type: The model's top-level Component subclass.
     :param env_type: :class:`SimEnvironment` subclass.
+    :param bool reraise: Should unhandled exceptions propogate to the caller.
     :returns:
         Dictionary containing the model-specific results of the simulation.
     """
-    result = {'config': config}
     t0 = timeit.default_timer()
-    with _Workspace(config):
-        env = env_type(config)
-        top_type.pre_init(env)
-        with TraceManager(env) as tracemgr:
-            try:
-                with _progress_notification(env):
-                    top = top_type(parent=None, env=env, tracemgr=tracemgr)
-                    top.elaborate()
-                    env.run(until=env.duration)
-                    top.post_simulate()
-            except Exception as e:
-                result['sim.exception'] = repr(e)
-                result['sim.now'] = env.now
-                result['sim.time'] = env.time()
-                raise
-            else:
-                result['sim.exception'] = None
-                result['sim.now'] = env.now
-                result['sim.time'] = env.time()
-                top.get_result(result)
-            finally:
-                result['sim.runtime'] = timeit.default_timer() - t0
-                _dump_result(config.setdefault('sim.result.file'), result)
+    result = {}
+    try:
+        with _Workspace(config):
+            env = env_type(config)
+            with closing(env.tracemgr):
+                try:
+                    top_type.pre_init(env)
+                    with _progress_notification(env):
+                        top = top_type(parent=None, env=env)
+                        top.elaborate()
+                        env.run(until=env.duration)
+                        top.post_simulate()
+                        top.get_result(result)
+                except BaseException as e:
+                    env.tracemgr.trace_exception()
+                    result['sim.exception'] = repr(e)
+                    raise
+                else:
+                    result['sim.exception'] = None
+                finally:
+                    result['config'] = config
+                    result['sim.now'] = env.now
+                    result['sim.time'] = env.time()
+                    result['sim.runtime'] = timeit.default_timer() - t0
+                    _dump_result(config.setdefault('sim.result.file'), result)
+    except BaseException as e:
+        if reraise:
+            raise
+        result.setdefault('config', config)
+        result.setdefault('sim.runtime', timeit.default_timer() - t0)
+        if result.get('sim.exception') is None:
+            result['sim.exception'] = repr(e)
     return result
 
 
@@ -194,7 +212,7 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
     for seq, config in enumerate(configs):
         config['sim.seq'] = seq
         config['sim.progress.enable'] = progress_enable
-        sim_args.append((config, top_type, env_type))
+        sim_args.append((config, top_type, env_type, False))
     promise = pool.map_async(_simulate_trampoline, sim_args)
     if progress_enable:
         _consume_progress(configs)
