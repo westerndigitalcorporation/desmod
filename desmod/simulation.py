@@ -57,6 +57,16 @@ class SimEnvironment(simpy.Environment):
         self.duration = scale_time(parse_time(config['sim.duration']),
                                    self.timescale)
 
+    def time(self, unit='s'):
+        """The current simulation time scaled to specified unit.
+
+        :param str unit: Unit of time to scale to. Default is 's' (seconds).
+        :returns: Current simulation time scaled to to `unit`.
+
+        """
+        ts_mag, ts_unit = self.timescale
+        return scale_time((self.now * ts_mag, ts_unit), (1, unit))
+
 
 class _Workspace(object):
     """Context manager for workspace directory management."""
@@ -101,11 +111,13 @@ def simulate(config, top_type, env_type=SimEnvironment):
                     top.post_simulate()
             except Exception as e:
                 result['sim.exception'] = repr(e)
+                result['sim.now'] = env.now
+                result['sim.time'] = env.time()
                 raise
             else:
                 result['sim.exception'] = None
-                now_ts = env.now, env.timescale[1]
-                result['sim.time'] = scale_time(now_ts, (1, 's'))
+                result['sim.now'] = env.now
+                result['sim.time'] = env.time()
                 top.get_result(result)
             finally:
                 result['sim.runtime'] = timeit.default_timer() - t0

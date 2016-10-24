@@ -62,3 +62,12 @@ def test_workspace_env_init(tmpdir, config):
         assert not os.path.exists(workspace)
         simulate(config, TopTest, TestEnvironment)
         assert os.path.exists(workspace)
+
+
+def test_sim_time(tmpdir, config):
+    config['sim.timescale'] = '10 ms'
+    config['sim.duration'] = '995 ms'
+    with tmpdir.as_cwd():
+        result = simulate(config, TopTest)
+        assert result['sim.time'] == 0.995
+        assert result['sim.now'] == 99.5
