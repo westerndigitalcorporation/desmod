@@ -44,18 +44,22 @@ class SimEnvironment(simpy.Environment):
         #: The pseudo-random number generator; an instance of
         #: :class:`random.Random`.
         self.rand = random.Random()
+        seed = config.setdefault('sim.seed', None)
         if six.PY3:
-            self.rand.seed(config['sim.seed'], version=1)
+            self.rand.seed(seed, version=1)
         else:
-            self.rand.seed(config['sim.seed'])
+            self.rand.seed(seed)
+
+        timescale_str = self.config.setdefault('sim.timescale', '1 s')
 
         #: Simulation timescale `(magnitude, units)` tuple. The current
         #: simulation time is `env.now * env.timescale`.
-        self.timescale = parse_time(self.config['sim.timescale'])
+        self.timescale = parse_time(timescale_str)
+
+        duration = config.setdefault('sim.duration', '0 s')
 
         #: The intended simulation duration, in units of `timescale`.
-        self.duration = scale_time(parse_time(config['sim.duration']),
-                                   self.timescale)
+        self.duration = scale_time(parse_time(duration), self.timescale)
 
     def time(self, unit='s'):
         """The current simulation time scaled to specified unit.
@@ -71,8 +75,8 @@ class SimEnvironment(simpy.Environment):
 class _Workspace(object):
     """Context manager for workspace directory management."""
     def __init__(self, config):
-        self.workspace = config.get('sim.workspace', os.curdir)
-        self.overwrite = config.get('sim.workspace.overwrite', False)
+        self.workspace = config.setdefault('sim.workspace', os.curdir)
+        self.overwrite = config.setdefault('sim.workspace.overwrite', False)
         self.prev_dir = os.getcwd()
 
     def __enter__(self):
@@ -121,7 +125,7 @@ def simulate(config, top_type, env_type=SimEnvironment):
                 top.get_result(result)
             finally:
                 result['sim.runtime'] = timeit.default_timer() - t0
-                _dump_result(config.get('sim.result.file'), result)
+                _dump_result(config.setdefault('sim.result.file'), result)
     return result
 
 
@@ -171,7 +175,7 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
     :returns: Sequence of result dictionaries for each simulation.
 
     """
-    progress_enable = any(config.get('sim.progress.enable')
+    progress_enable = any(config.setdefault('sim.progress.enable', False)
                           for config in configs)
     if sys.platform == 'win32' and progress_enable:
         import warnings
@@ -212,7 +216,7 @@ def _get_progressbar(config):
                                             progressbar.Bar(),
                                             progressbar.ETA()])
 
-    max_width = config.get('sim.progress.max_width')
+    max_width = config.setdefault('sim.progress.max_width')
     if max_width and pbar.term_width > max_width:
         pbar.term_width = max_width
 
@@ -228,7 +232,7 @@ _progress_queue = multiprocessing.Queue()
 
 @contextmanager
 def _progress_notification(env):
-    if env.config.get('sim.progress.enable'):
+    if env.config.setdefault('sim.progress.enable', False):
         interval = env.duration / 100
         seq = env.config.get('sim.seq')
 
