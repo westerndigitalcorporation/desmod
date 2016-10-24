@@ -19,11 +19,12 @@ class Tracer(object):
     def __init__(self, env):
         self.env = env
         cfg_scope = 'sim.' + self.name + '.'
-        self.enabled = env.config.get(cfg_scope + 'enable', False)
+        self.enabled = env.config.setdefault(cfg_scope + 'enable', False)
         if self.enabled:
             self.open()
-            include_pat = env.config.get(cfg_scope + 'include_pat', ['.*'])
-            exclude_pat = env.config.get(cfg_scope + 'exclude_pat', [])
+            include_pat = env.config.setdefault(cfg_scope + 'include_pat',
+                                                ['.*'])
+            exclude_pat = env.config.setdefault(cfg_scope + 'exclude_pat', [])
             self._include_re = [re.compile(pat) for pat in include_pat]
             self._exclude_re = [re.compile(pat) for pat in exclude_pat]
 
@@ -69,12 +70,13 @@ class LogTracer(Tracer):
     }
 
     def open(self):
-        log_filename = self.env.config.get('sim.log.file')
-        buffering = self.env.config.get('sim.log.buffering', -1)
-        self.max_level = self.levels[self.env.config.get('sim.log.level',
-                                                         'INFO')]
-        self.format_str = self.env.config.get('sim.log.format',
-                                              self.default_format)
+        log_filename = self.env.config.setdefault('sim.log.file',
+                                                  'sim.log')
+        buffering = self.env.config.setdefault('sim.log.buffering', -1)
+        level = self.env.config.setdefault('sim.log.level', 'INFO')
+        self.max_level = self.levels[level]
+        self.format_str = self.env.config.setdefault('sim.log.format',
+                                                     self.default_format)
         ts_n, ts_unit = self.env.timescale
         if ts_n == 1:
             self.ts_unit = ts_unit
@@ -140,21 +142,26 @@ class VCDTracer(Tracer):
     name = 'vcd'
 
     def open(self):
-        dump_filename = self.env.config['sim.vcd.dump_file']
+        dump_filename = self.env.config.setdefault('sim.vcd.dump_file',
+                                                   'sim.vcd')
         if 'sim.vcd.timescale' in self.env.config:
-            vcd_timescale = parse_time(self.env.config['sim.vcd.timescale'])
+            vcd_ts_str = self.env.config.setdefault(
+                'sim.vcd.timescale',
+                self.env.config['sim.timescale'])
+            vcd_timescale = parse_time(vcd_ts_str)
         else:
             vcd_timescale = self.env.timescale
         self.scale_factor = scale_time(self.env.timescale, vcd_timescale)
-        check_values = self.env.config.get('sim.vcd.check_values', True)
+        check_values = self.env.config.setdefault('sim.vcd.check_values', True)
         self.dump_file = open(dump_filename, 'w')
         self.vcd = VCDWriter(self.dump_file,
                              timescale=vcd_timescale,
                              check_values=check_values)
-        if self.env.config.get('sim.gtkw.live'):
+        if self.env.config.setdefault('sim.gtkw.live'):
             from vcd.gtkw import spawn_gtkwave_interactive
-            save_filename = self.env.config['sim.gtkw.file']
-            quiet = self.env.config.get('sim.gtkw.quiet', True)
+            save_filename = self.env.config.setdefault('sim.gtkw.file',
+                                                       'sim.gtkw')
+            quiet = self.env.config.setdefault('sim.gtkw.quiet', True)
             spawn_gtkwave_interactive(dump_filename, save_filename,
                                       quiet=quiet)
 
