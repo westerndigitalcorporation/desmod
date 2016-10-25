@@ -147,33 +147,29 @@ def simulate(config, top_type, env_type=SimEnvironment, reraise=True):
     return result
 
 
-def simulate_factors(base_config, top_type,
+def simulate_factors(base_config, factors, top_type,
                      env_type=SimEnvironment, jobs=None):
     """Run multi-factor simulations in separate processes.
 
-    The `'sim.factors'` found in `base_config` are used to compose specialized
-    config dictionaries for the simulations.
+    The `factors` are used to compose specialized config dictionaries for the
+    simulations.
 
     The :mod:`python:multiprocessing` module is used run each simulation with a
     separate Python process. This allows multi-factor simulations to run in
     parallel on all available CPU cores.
 
-    :param dict base_config:
-        Base configuration dictionary to be specialized. Must contain the
-        `'sim.factors'` key/value which specifies one or more configuration
-        factors.
+    :param dict base_config: Base configuration dictionary to be specialized.
+    :param list factors: List of factors.
     :param top_type: The model's top-level Component subclass.
     :param env_type: :class:`SimEnvironment` subclass.
     :param int jobs: User specified number of concurent processes.
     :returns: Sequence of result dictionaries for each simulation.
 
     """
-    factors = base_config['sim.factors']
     configs = list(factorial_config(base_config, factors, 'sim.special'))
     base_workspace = base_config.setdefault('sim.workspace', os.curdir)
     overwrite = base_config.setdefault('sim.workspace.overwrite', False)
     for seq, config in enumerate(configs):
-        config['sim.factors'] = []
         config['sim.workspace'] = os.path.join(base_workspace, str(seq))
     if (overwrite and
             os.path.relpath(base_workspace) != os.curdir and
