@@ -152,11 +152,14 @@ def simulate_factors(base_config, top_type,
     """
     factors = base_config['sim.factors']
     configs = list(factorial_config(base_config, factors, 'sim.special'))
-    base_workspace = base_config['sim.workspace']
+    base_workspace = base_config.setdefault('sim.workspace', os.curdir)
+    overwrite = base_config.setdefault('sim.workspace.overwrite', False)
     for seq, config in enumerate(configs):
         config['sim.factors'] = []
         config['sim.workspace'] = os.path.join(base_workspace, str(seq))
-    if os.path.isdir(base_workspace):
+    if (overwrite and
+            os.path.relpath(base_workspace) != os.curdir and
+            os.path.isdir(base_workspace)):
         shutil.rmtree(base_workspace)
     return simulate_many(configs, top_type, env_type, jobs)
 
