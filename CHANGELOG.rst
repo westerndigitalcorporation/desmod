@@ -1,6 +1,14 @@
 Changlog
 ========
 
+desmod-0.1.6 (2016-10-25)
+-------------------------
+* [NEW] Add env.time() and 'sim.now' result
+* [FIX] Enter workspace directory before instantiating env
+* [CHANGE] Use yaml.safe_dump()
+* [FIX] Add dist to .gitignore
+* [FIX] Squash warning in setup.cfg
+
 desmod-0.1.5 (2016-10-17)
 -------------------------
 * [NEW] Add Queue.size and Queue.remaining properties (#9)
