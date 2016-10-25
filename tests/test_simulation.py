@@ -139,8 +139,8 @@ def test_no_result_file(config):
 
 
 def test_simulate_factors(config):
-    config['sim.factors'] = [(['sim.seed'], [[1], [2], [3]])]
-    results = simulate_factors(config, TopTest)
+    factors = [(['sim.seed'], [[1], [2], [3]])]
+    results = simulate_factors(config, factors, TopTest)
     assert len(results) == 3
     for result in results:
         assert result['sim.exception'] is None
@@ -151,8 +151,8 @@ def test_simulate_factors(config):
 
 def test_simulate_factors_no_overwrite(config):
     config['sim.workspace.overwrite'] = False
-    config['sim.factors'] = [(['sim.seed'], [[1], [2], [3]])]
-    results = simulate_factors(config, TopTest)
+    factors = [(['sim.seed'], [[1], [2], [3]])]
+    results = simulate_factors(config, factors, TopTest)
     assert os.path.isdir(config['sim.workspace'])
     assert len(results) == 3
     for result in results:
@@ -164,8 +164,8 @@ def test_simulate_factors_no_overwrite(config):
     with open(os.path.join(config['sim.workspace'], 'cookie.txt'), 'w') as f:
         f.write('hi')
 
-    config['sim.factors'] = [(['sim.seed'], [[1], [2], [3], [4]])]
-    results = simulate_factors(config, TopTest)
+    factors = [(['sim.seed'], [[1], [2], [3], [4]])]
+    results = simulate_factors(config, factors, TopTest)
     assert len(results) == 4
     assert os.path.isdir(config['sim.workspace'])
     for result in results:
@@ -180,8 +180,8 @@ def test_simulate_factors_no_overwrite(config):
 
 def test_simulate_factors_overwrite(config):
     config['sim.workspace.overwrite'] = True
-    config['sim.factors'] = [(['sim.seed'], [[1], [2], [3]])]
-    results = simulate_factors(config, TopTest)
+    factors = [(['sim.seed'], [[1], [2], [3]])]
+    results = simulate_factors(config, factors, TopTest)
     assert os.path.isdir(config['sim.workspace'])
     assert len(results) == 3
     for result in results:
@@ -193,8 +193,8 @@ def test_simulate_factors_overwrite(config):
     with open(os.path.join(config['sim.workspace'], 'cookie.txt'), 'w') as f:
         f.write('hi')
 
-    config['sim.factors'] = [(['sim.seed'], [[1], [2]])]
-    results = simulate_factors(config, TopTest)
+    factors = [(['sim.seed'], [[1], [2]])]
+    results = simulate_factors(config, factors, TopTest)
     assert len(results) == 2
     assert os.path.isdir(config['sim.workspace'])
     for result in results:
@@ -221,8 +221,8 @@ def test_progress_enabled(config):
 
 def test_many_progress_enabled(config):
     config['sim.progress.enable'] = True
-    config['sim.factors'] = [(['sim.seed'], [[1], [2], [3]])]
-    results = simulate_factors(config, TopTest)
+    factors = [(['sim.seed'], [[1], [2], [3]])]
+    results = simulate_factors(config, factors, TopTest)
     for result in results:
         assert result['sim.exception'] is None
         assert result['sim.now'] == 1

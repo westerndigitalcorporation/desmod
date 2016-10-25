@@ -134,7 +134,7 @@ def parse_user_factors(config, user_factors, eval_locals=None):
         expressions.
     :returns:
         List of keys, values pairs. The returned list of factors is suitable
-        for assigning to `config['sim.factors']`.
+        for passing to :func:`simulate_factors`.
     :raises `desmod.config.ConfigError`: For invalid user keys or expressions.
 
     """
