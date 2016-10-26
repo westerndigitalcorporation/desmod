@@ -1,6 +1,13 @@
 Changlog
 ========
 
+desmod-0.2.0 (2016-10-25)
+-------------------------
+* [CHANGE] simulate_factors() now has factors parameter
+* [NEW] simulate() can suppress exceptions
+* [FIX] simulate_factors() respects sim.workspace.overwrite
+* [CHANGE] Update config with missing defaults at runtime
+
 desmod-0.1.6 (2016-10-25)
 -------------------------
 * [NEW] Add env.time() and 'sim.now' result
