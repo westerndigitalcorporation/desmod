@@ -43,6 +43,9 @@ class Tracer(object):
     def _close(self):
         raise NotImplementedError()
 
+    def flush(self):
+        pass
+
     def activate_probe(self, scope, target, **hints):
         raise NotImplementedError()
 
@@ -86,6 +89,9 @@ class LogTracer(Tracer):
         else:
             self.file = sys.stderr
             self.should_close = False
+
+    def flush(self):
+        self.file.flush()
 
     def _close(self):
         if self.should_close:
@@ -165,6 +171,9 @@ class VCDTracer(Tracer):
     def vcd_now(self):
         return self.env.now * self.scale_factor
 
+    def flush(self):
+        self.dump_file.flush()
+
     def _close(self):
         self.vcd.close(self.vcd_now())
         self.dump_file.close()
@@ -236,6 +245,16 @@ class TraceManager(object):
         except:
             self.close()
             raise
+
+    def flush(self):
+        """Flush all managed tracers instances.
+
+        The effect of flushing is tracer-dependent.
+
+        """
+        for tracer in self.tracers:
+            if tracer.enabled:
+                tracer.flush()
 
     def close(self):
         for tracer in self.tracers:

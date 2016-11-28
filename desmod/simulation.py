@@ -119,11 +119,15 @@ def simulate(config, top_type, env_type=SimEnvironment, reraise=True):
             with closing(env.tracemgr):
                 try:
                     top_type.pre_init(env)
+                    env.tracemgr.flush()
                     with _progress_notification(env):
                         top = top_type(parent=None, env=env)
                         top.elaborate()
+                        env.tracemgr.flush()
                         env.run(until=env.duration)
+                        env.tracemgr.flush()
                         top.post_simulate()
+                        env.tracemgr.flush()
                         top.get_result(result)
                 except BaseException as e:
                     env.tracemgr.trace_exception()
@@ -132,6 +136,7 @@ def simulate(config, top_type, env_type=SimEnvironment, reraise=True):
                 else:
                     result['sim.exception'] = None
                 finally:
+                    env.tracemgr.flush()
                     result['config'] = config
                     result['sim.now'] = env.now
                     result['sim.time'] = env.time()
