@@ -241,6 +241,34 @@ def factorial_config(base_config, factors, special_key=None):
         yield config
 
 
+def fuzzy_match(keys, fuzzy_key):
+    """Match a fuzzy key against sequence of canonical key names.
+
+    :param keys: Sequence of canonical key names.
+    :param str fuzzy_key: Fuzzy key to match against canonical keys.
+    :returns: Canonical matching key name.
+    :raises: `KeyError` if fuzzy key does not match.
+
+    """
+    suffix_matches = []
+    split_matches = []
+    for k in keys:
+        if k == fuzzy_key:
+            return k
+        elif k.rsplit('.', 1)[-1] == fuzzy_key:
+            split_matches.append(k)
+        elif k.endswith(fuzzy_key):
+            suffix_matches.append(k)
+    if len(split_matches) == 1:
+        return split_matches[0]
+    elif len(suffix_matches) == 1:
+        return suffix_matches[0]
+    elif not any((suffix_matches, split_matches)):
+        raise KeyError(fuzzy_key)
+    else:
+        raise KeyError(fuzzy_key + 'is ambiguous')
+
+
 def fuzzy_lookup(config, fuzzy_key):
     """Lookup a config key/value using a partially specified (fuzzy) key.
 
@@ -256,27 +284,11 @@ def fuzzy_lookup(config, fuzzy_key):
 
     """
     try:
-        return fuzzy_key, config[fuzzy_key]
-    except KeyError:
-        suffix_matches = []
-        split_matches = []
-        for k in config:
-            if k.rsplit('.', 1)[-1] == fuzzy_key:
-                split_matches.append(k)
-            elif k.endswith(fuzzy_key):
-                suffix_matches.append(k)
-        if len(split_matches) == 1:
-            k = split_matches[0]
-            return k, config[k]
-        elif len(suffix_matches) == 1:
-            k = suffix_matches[0]
-            return k, config[k]
-        elif not suffix_matches + split_matches:
-            raise ConfigError('Invalid config key "{}"'.format(fuzzy_key))
-        else:
-            raise ConfigError(
-                'Ambiguous config key "{}"; possible matches: {}'.format(
-                    fuzzy_key, ', '.join(split_matches + suffix_matches)))
+        k = fuzzy_match(config, fuzzy_key)
+    except KeyError as e:
+        raise ConfigError('Invalid config key: {}'.format(e))
+    else:
+        return k, config[k]
 
 
 _safe_builtins = [

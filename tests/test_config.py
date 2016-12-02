@@ -164,7 +164,7 @@ def test_parse_user_factor(user_keys, user_exprs, expected):
 
 
 @pytest.mark.parametrize('user_keys, user_exprs, err_str', [
-    ('baz', 'True, False', 'Ambiguous'),
+    ('baz', 'True, False', 'ambiguous'),
     ('foo', '"one", "two"', 'coerce'),
     ('foo', '1', 'sequence'),
 ])
