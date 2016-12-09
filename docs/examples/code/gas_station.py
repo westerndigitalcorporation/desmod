@@ -14,6 +14,7 @@ This example demonstrates core desmod concepts including:
  - Logging
 
 """
+from __future__ import division
 from itertools import count, cycle
 
 from desmod.component import Component
