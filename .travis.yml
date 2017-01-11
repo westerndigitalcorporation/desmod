@@ -15,5 +15,6 @@ matrix:
 
 install:
   - pip install -r requirements-dev.txt
+  - pip install -e .
 
 script: py.test --flake8
