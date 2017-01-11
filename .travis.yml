@@ -15,6 +15,10 @@ matrix:
 
 install:
   - pip install -r requirements-dev.txt
+  - pip install coveralls
   - pip install -e .
 
-script: py.test --flake8
+script: py.test --flake8 --cov
+
+after_success:
+  coveralls
