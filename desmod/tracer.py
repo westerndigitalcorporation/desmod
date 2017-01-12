@@ -1,4 +1,5 @@
 from __future__ import print_function
+import os
 import re
 import sys
 import traceback
@@ -20,6 +21,7 @@ class Tracer(object):
         self.env = env
         cfg_scope = 'sim.' + self.name + '.'
         self.enabled = env.config.setdefault(cfg_scope + 'enable', False)
+        self.persist = env.config.setdefault(cfg_scope + 'persist', True)
         if self.enabled:
             self.open()
             include_pat = env.config.setdefault(cfg_scope + 'include_pat',
@@ -42,6 +44,9 @@ class Tracer(object):
 
     def _close(self):
         raise NotImplementedError()  # pragma: no cover
+
+    def remove_files(self):
+        raise NotImplementedError()
 
     def flush(self):
         pass
@@ -70,8 +75,7 @@ class LogTracer(Tracer):
     }
 
     def open(self):
-        log_filename = self.env.config.setdefault('sim.log.file',
-                                                  'sim.log')
+        self.filename = self.env.config.setdefault('sim.log.file', 'sim.log')
         buffering = self.env.config.setdefault('sim.log.buffering', -1)
         level = self.env.config.setdefault('sim.log.level', 'INFO')
         self.max_level = self.levels[level]
@@ -83,8 +87,8 @@ class LogTracer(Tracer):
         else:
             self.ts_unit = '({}{})'.format(ts_n, ts_unit)
 
-        if log_filename:
-            self.file = open(log_filename, 'w', buffering)
+        if self.filename:
+            self.file = open(self.filename, 'w', buffering)
             self.should_close = True
         else:
             self.file = sys.stderr
@@ -96,6 +100,10 @@ class LogTracer(Tracer):
     def _close(self):
         if self.should_close:
             self.file.close()
+
+    def remove_files(self):
+        if os.path.isfile(self.filename):
+            os.remove(self.filename)
 
     def is_scope_enabled(self, scope, level=None):
         return ((level is None or self.levels[level] <= self.max_level) and
@@ -160,12 +168,12 @@ class VCDTracer(Tracer):
         self.vcd = VCDWriter(self.dump_file,
                              timescale=vcd_timescale,
                              check_values=check_values)
+        self.save_filename = self.env.config.setdefault('sim.gtkw.file',
+                                                        'sim.gtkw')
         if self.env.config.setdefault('sim.gtkw.live'):
             from vcd.gtkw import spawn_gtkwave_interactive
-            save_filename = self.env.config.setdefault('sim.gtkw.file',
-                                                       'sim.gtkw')
             quiet = self.env.config.setdefault('sim.gtkw.quiet', True)
-            spawn_gtkwave_interactive(dump_filename, save_filename,
+            spawn_gtkwave_interactive(dump_filename, self.save_filename,
                                       quiet=quiet)
 
         start_time = self.env.config.setdefault('sim.vcd.start_time', '')
@@ -185,6 +193,12 @@ class VCDTracer(Tracer):
     def _close(self):
         self.vcd.close(self.vcd_now())
         self.dump_file.close()
+
+    def remove_files(self):
+        if os.path.isfile(self.dump_file.name):
+            os.remove(self.dump_file.name)
+        if os.path.isfile(self.save_filename):
+            os.remove(self.save_filename)
 
     def activate_probe(self, scope, target, **hints):
         assert self.enabled
@@ -298,6 +312,8 @@ class TraceManager(object):
     def close(self):
         for tracer in self.tracers:
             tracer.close()
+            if tracer.enabled and not tracer.persist:
+                tracer.remove_files()
 
     def auto_probe(self, scope, target, **hints):
         callbacks = []

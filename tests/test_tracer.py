@@ -146,6 +146,17 @@ def test_log_stderr(config, capsys):
     assert err.endswith('INFO    9.000 us: top.container: 1\n')
 
 
+def test_log_persist(config):
+    config['sim.log.enable'] = True
+    config['sim.log.persist'] = False
+    simulate(config, TopTest)
+    log_path = os.path.join(config['sim.workspace'], config['sim.log.file'])
+    assert not os.path.exists(log_path)
+
+    config['sim.log.file'] = ''
+    simulate(config, TopTest)
+
+
 def test_vcd(config):
     config['sim.vcd.enable'] = True
     simulate(config, TopTest)
@@ -223,3 +234,12 @@ def test_vcd_timescale(config):
     with open(dump_path) as dump:
         vcd_str = dump.read()
         assert '$timescale 10 s' in vcd_str
+
+
+def test_vcd_persist(config):
+    config['sim.vcd.enable'] = True
+    config['sim.vcd.persist'] = False
+    simulate(config, TopTest)
+    dump_path = os.path.join(config['sim.workspace'],
+                             config['sim.vcd.dump_file'])
+    assert not os.path.exists(dump_path)
