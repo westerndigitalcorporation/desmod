@@ -61,6 +61,10 @@ class SimEnvironment(simpy.Environment):
         #: The intended simulation duration, in units of :attr:`timescale`.
         self.duration = scale_time(parse_time(duration), self.timescale)
 
+        #: The simulation runs "until" this event. By default, this is the
+        #: configured "sim.duration", but may be overridden by subclasses.
+        self.until = self.duration
+
         #: :class:`TraceManager` instance.
         self.tracemgr = TraceManager(self)
 
@@ -76,6 +80,25 @@ class SimEnvironment(simpy.Environment):
         ts_mag, ts_unit = self.timescale
         sim_time = ((self.now if t is None else t) * ts_mag, ts_unit)
         return scale_time(sim_time, target_scale)
+
+
+class SimStopEvent(simpy.Event):
+    """Event appropriate for stopping the simulation.
+
+    An instance of this event may be used to override `SimEnvironment.until` to
+    dynamically choose when to stop the simulation. The simulation may be
+    stopped by calling :meth:`schedule()`. The optional `delay` parameter may
+    be used to schedule the simulation to stop at an offset from the current
+    simulation time.
+
+    """
+
+    def schedule(self, delay=0):
+        assert not self.triggered
+        assert delay >= 0
+        self._ok = True
+        self._value = None
+        self.env.schedule(self, simpy.events.URGENT, delay)
 
 
 class _Workspace(object):
@@ -128,7 +151,7 @@ def simulate(config, top_type, env_type=SimEnvironment, reraise=True,
                         top = top_type(parent=None, env=env)
                         top.elaborate()
                         env.tracemgr.flush()
-                        env.run(until=env.duration)
+                        env.run(until=env.until)
                         env.tracemgr.flush()
                         top.post_simulate()
                         env.tracemgr.flush()

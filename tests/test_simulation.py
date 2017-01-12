@@ -2,7 +2,8 @@ import os
 import pytest
 
 from desmod.component import Component
-from desmod.simulation import simulate, simulate_factors, SimEnvironment
+from desmod.simulation import (simulate, simulate_factors, SimEnvironment,
+                               SimStopEvent)
 
 
 pytestmark = pytest.mark.usefixtures('cleandir')
@@ -31,6 +32,7 @@ def config():
         'test.fail_simulate': False,
         'test.fail_post_simulate': False,
         'test.fail_get_result': False,
+        'test.until_delay': None,
     }
 
 
@@ -51,6 +53,9 @@ class TopTest(Component):
         yield self.env.timeout(0.5)
         if self.env.config.get('test.fail_simulate'):
             assert False, 'fail_simulate'
+        until_delay = self.env.config.get('test.until_delay')
+        if until_delay is not None:
+            self.env.until.schedule(until_delay)
         yield self.env.timeout(0.5)
 
     def post_sim_hook(self):
@@ -296,3 +301,18 @@ def test_sim_time_non_default_t(config):
     assert env.time(1000, 's') == 1
     assert env.time(1, 'ms') == 1
     assert env.time(t=500) == 0.5
+
+
+def test_sim_until(config):
+    class TestEnvironment(SimEnvironment):
+        def __init__(self, config):
+            super(TestEnvironment, self).__init__(config)
+            self.until = SimStopEvent(self)
+
+    config['test.until_delay'] = 0
+    result = simulate(config, TopTest, TestEnvironment)
+    assert result['sim.now'] == 0.50
+
+    config['test.until_delay'] = 0.25
+    result = simulate(config, TopTest, TestEnvironment)
+    assert result['sim.now'] == 0.75
