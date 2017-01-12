@@ -71,8 +71,9 @@ class SimEnvironment(simpy.Environment):
         :returns: Current simulation time scaled to to `unit`.
 
         """
+        target_scale = parse_time(unit)
         ts_mag, ts_unit = self.timescale
-        return scale_time((self.now * ts_mag, ts_unit), (1, unit))
+        return scale_time((self.now * ts_mag, ts_unit), target_scale)
 
 
 class _Workspace(object):
