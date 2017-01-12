@@ -1,4 +1,5 @@
 import os
+import sqlite3
 
 import pytest
 import simpy
@@ -21,6 +22,8 @@ def cleandir(tmpdir):
 @pytest.fixture
 def config():
     return {
+        'sim.db.enable': False,
+        'sim.db.file': 'sim.sqlite',
         'sim.duration': '10 us',
         'sim.log.enable': False,
         'sim.log.file': 'sim.log',
@@ -54,6 +57,8 @@ class TopTest(Component):
             hints['log'] = {'level': 'INFO'}
         if self.env.config['sim.vcd.enable']:
             hints['vcd'] = {}
+        if self.env.config['sim.db.enable']:
+            hints['db'] = {}
         self.auto_probe('container', **hints)
         self.auto_probe('resource', **hints)
         self.auto_probe('queue', **hints)
@@ -111,7 +116,8 @@ def test_defaults(config):
     assert os.path.exists(os.path.join(workspace, config['sim.result.file']))
     for filename_key in ['sim.log.file',
                          'sim.vcd.dump_file',
-                         'sim.vcd.gtkw_file']:
+                         'sim.vcd.gtkw_file',
+                         'sim.db.file']:
         assert not os.path.exists(os.path.join(workspace,
                                                config[filename_key]))
 
@@ -243,3 +249,38 @@ def test_vcd_persist(config):
     dump_path = os.path.join(config['sim.workspace'],
                              config['sim.vcd.dump_file'])
     assert not os.path.exists(dump_path)
+
+
+def test_db(config):
+    config['sim.db.enable'] = True
+    simulate(config, TopTest)
+    db_path = os.path.join(config['sim.workspace'], config['sim.db.file'])
+    assert os.path.exists(db_path)
+    db = sqlite3.connect(db_path)
+    assert db.execute('SELECT COUNT() FROM trace').fetchone()[0] == 15
+
+
+def test_db_persist(config):
+    config['sim.db.enable'] = True
+    config['sim.db.persist'] = False
+    simulate(config, TopTest)
+    db_path = os.path.join(config['sim.workspace'], config['sim.db.file'])
+    assert not os.path.exists(db_path)
+
+
+def test_db_include_pat(config):
+    config['sim.db.enable'] = True
+    config['sim.db.include_pat'] = ['top\.resource']
+    simulate(config, TopTest)
+    db_path = os.path.join(config['sim.workspace'], config['sim.db.file'])
+    assert os.path.exists(db_path)
+    db = sqlite3.connect(db_path)
+    assert db.execute('SELECT COUNT() FROM trace').fetchone()[0] == 2
+
+
+def test_db_in_memory(config):
+    config['sim.db.enable'] = True
+    config['sim.db.file'] = ':memory:'
+    simulate(config, TopTest)
+    db_path = os.path.join(config['sim.workspace'], config['sim.db.file'])
+    assert not os.path.exists(db_path)

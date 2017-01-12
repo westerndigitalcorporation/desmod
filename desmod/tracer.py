@@ -1,6 +1,7 @@
 from __future__ import print_function
 import os
 import re
+import sqlite3
 import sys
 import traceback
 
@@ -286,6 +287,54 @@ class VCDTracer(Tracer):
             self.vcd.dump_on(self.vcd_now())
 
 
+class SQLiteTracer(Tracer):
+
+    name = 'db'
+
+    def open(self):
+        self.filename = self.env.config.setdefault('sim.db.file', 'sim.sqlite')
+        self.trace_table = self.env.config.setdefault('sim.db.trace_table',
+                                                      'trace')
+        self.remove_files()
+        self.db = sqlite3.connect(self.filename)
+        self._is_trace_table_created = False
+
+    def _create_trace_table(self):
+        if not self._is_trace_table_created:
+            self.db.execute('CREATE TABLE {} ('
+                            'timestamp FLOAT, '
+                            'scope TEXT, '
+                            'value)'.format(self.trace_table))
+            self._is_trace_table_created = True
+
+    def flush(self):
+        self.db.commit()
+
+    def _close(self):
+        self.db.commit()
+        self.db.close()
+
+    def remove_files(self):
+        if self.filename != ':memory:':
+            for filename in [self.filename, self.filename + '-journal']:
+                if os.path.exists(filename):
+                    os.remove(filename)
+
+    def activate_probe(self, scope, target, **hints):
+        return self.activate_trace(scope, **hints)
+
+    def activate_trace(self, scope, **hints):
+        assert self.enabled
+        self._create_trace_table()
+        insert_sql = (
+            'INSERT INTO {} (timestamp, scope, value) VALUES (?, ?, ?)'
+            .format(self.trace_table))
+
+        def trace_callback(value):
+            self.db.execute(insert_sql, (self.env.now, scope, value))
+        return trace_callback
+
+
 class TraceManager(object):
 
     def __init__(self, env):
@@ -295,6 +344,8 @@ class TraceManager(object):
             self.tracers.append(self.log_tracer)
             self.vcd_tracer = VCDTracer(env)
             self.tracers.append(self.vcd_tracer)
+            self.sqlite_tracer = SQLiteTracer(env)
+            self.tracers.append(self.sqlite_tracer)
         except:
             self.close()
             raise
