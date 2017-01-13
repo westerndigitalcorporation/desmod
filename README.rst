@@ -17,6 +17,10 @@ __ https://simpy.readthedocs.io/en/latest/
     :target: https://travis-ci.org/SanDisk-Open-Source/desmod
     :alt: Build Status
 
+.. image:: https://coveralls.io/repos/github/SanDisk-Open-Source/desmod/badge.svg?branch=master
+    :target: https://coveralls.io/github/SanDisk-Open-Source/desmod?branch=master
+    :alt: Code Coverage
+
 
 Installation
 ------------
