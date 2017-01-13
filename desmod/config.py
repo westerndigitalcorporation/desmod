@@ -241,18 +241,6 @@ def factorial_config(base_config, factors, special_key=None):
         yield config
 
 
-def get_short_special(special):
-    short_special = []
-    for key, value in special:
-        key_parts = key.split('.')
-        for i in reversed(range(len(key_parts))):
-            short_key = '.'.join(key_parts[i:])
-            if all(k == key or not k.endswith(short_key) for k, _ in special):
-                short_special.append((short_key, value))
-                break
-    return short_special
-
-
 def fuzzy_lookup(config, fuzzy_key):
     """Lookup a config key/value using a partially specified (fuzzy) key.
 
