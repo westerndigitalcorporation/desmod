@@ -52,16 +52,16 @@ class SimEnvironment(simpy.Environment):
 
         timescale_str = self.config.setdefault('sim.timescale', '1 s')
 
-        #: Simulation timescale `(magnitude, units)` tuple. The current
-        #: simulation time is `env.now * env.timescale`.
+        #: Simulation timescale ``(magnitude, units)`` tuple. The current
+        #: simulation time is ``now * timescale``.
         self.timescale = parse_time(timescale_str)
 
         duration = config.setdefault('sim.duration', '0 s')
 
-        #: The intended simulation duration, in units of `timescale`.
+        #: The intended simulation duration, in units of :attr:`timescale`.
         self.duration = scale_time(parse_time(duration), self.timescale)
 
-        #: TraceManager instance.
+        #: :class:`TraceManager` instance.
         self.tracemgr = TraceManager(self)
 
     def time(self, t=None, unit='s'):

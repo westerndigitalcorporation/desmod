@@ -14,6 +14,8 @@
       :annotation:
    .. autoinstanceattribute:: duration
       :annotation:
+   .. autoinstanceattribute:: tracemgr
+      :annotation:
    .. autoattribute:: now
    .. automethod:: time(t=None, unit='s')
    .. autoattribute:: active_process
