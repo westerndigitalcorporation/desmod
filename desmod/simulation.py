@@ -2,11 +2,11 @@
 
 from __future__ import division
 from contextlib import contextmanager, closing
+from multiprocessing import cpu_count, Process, Queue
+from threading import Thread
 import os
-import multiprocessing
 import random
 import shutil
-import sys
 import timeit
 
 import simpy
@@ -98,7 +98,8 @@ class _Workspace(object):
         os.chdir(self.prev_dir)
 
 
-def simulate(config, top_type, env_type=SimEnvironment, reraise=True):
+def simulate(config, top_type, env_type=SimEnvironment, reraise=True,
+             progress_queue=None):
     """Initialize, elaborate, and run a simulation.
 
      All exceptions are caught by `simulate()` so they can be logged and
@@ -123,7 +124,7 @@ def simulate(config, top_type, env_type=SimEnvironment, reraise=True):
                 try:
                     top_type.pre_init(env)
                     env.tracemgr.flush()
-                    with _progress_notification(env):
+                    with _progress_notification(env, progress_queue):
                         top = top_type(parent=None, env=env)
                         top.elaborate()
                         env.tracemgr.flush()
@@ -202,29 +203,47 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
     """
     progress_enable = any(config.setdefault('sim.progress.enable', False)
                           for config in configs)
-    if sys.platform == 'win32' and progress_enable:
-        import warnings
-        warnings.warn(
-            'Disabling sim.progress.enable. Progress bar broken on win32 with '
-            'simulate_many().')
-        progress_enable = False
-    pool_size = min(len(configs), multiprocessing.cpu_count())
-    if jobs is not None:
-        pool_size = min(pool_size, jobs)
-    pool = multiprocessing.Pool(pool_size)
-    sim_args = []
+
+    progress_queue = Queue() if progress_enable else None
+    result_queue = Queue()
+    config_queue = Queue()
+
     for seq, config in enumerate(configs):
         config['sim.seq'] = seq
         config['sim.progress.enable'] = progress_enable
-        sim_args.append((config, top_type, env_type, False))
-    promise = pool.map_async(_simulate_trampoline, sim_args)
+        config_queue.put(config)
+
+    num_workers = min(len(configs), cpu_count())
+    if jobs is not None:
+        num_workers = min(num_workers, jobs)
+
+    for i in range(num_workers):
+        worker = Process(name='sim-worker-{}'.format(i),
+                         target=_simulate_worker,
+                         args=(top_type, env_type, False, progress_queue,
+                               config_queue, result_queue))
+        worker.daemon = True    # Workers die if main process dies.
+        worker.start()
+        config_queue.put(None)  # A stop sentinel for each worker.
+
     if progress_enable:
-        _consume_progress(configs)
-    return promise.get()
+        progress_thread = Thread(target=_consume_progress,
+                                 args=(configs, progress_queue))
+        progress_thread.daemon = True
+        progress_thread.start()
+
+    results = [result_queue.get() for _ in configs]
+    return sorted(results, key=lambda r: r['config']['sim.seq'])
 
 
-def _simulate_trampoline(args):
-    return simulate(*args)
+def _simulate_worker(top_type, env_type, reraise, progress_queue, config_queue,
+                     result_queue):
+    while True:
+        config = config_queue.get()
+        if config is None:
+            break
+        result = simulate(config, top_type, env_type, reraise, progress_queue)
+        result_queue.put(result)
 
 
 def _dump_result(filename, result):
@@ -248,15 +267,8 @@ def _get_progressbar(config):
     return pbar
 
 
-# When using simulate_factors(), each simulation subprocess sends progress
-# notifications to the main/parent process via this queue.
-# Unfortunately, this mechanism does not work on Windows with spawned
-# subprocesses using map_async().
-_progress_queue = multiprocessing.Queue()
-
-
 @contextmanager
-def _progress_notification(env):
+def _progress_notification(env, progress_queue):
     if env.config.setdefault('sim.progress.enable', False):
         interval = env.duration / 100
         seq = env.config.get('sim.seq')
@@ -278,7 +290,7 @@ def _progress_notification(env):
         else:
             def progress():
                 while True:
-                    _progress_queue.put((seq, env.now / env.duration))
+                    progress_queue.put((seq, env.now / env.duration))
                     yield env.timeout(interval)
 
             env.process(progress())
@@ -286,20 +298,23 @@ def _progress_notification(env):
             try:
                 yield None
             finally:
-                _progress_queue.put((seq, 1))
+                progress_queue.put((seq, 1))
     else:
         yield None
 
 
-def _consume_progress(configs):
+def _consume_progress(configs, progress_queue):
     pbar = _get_progressbar(configs[0])
     notifiers = {config['sim.seq']: 0 for config in configs}
     total_progress = 0
 
-    while total_progress < 1:
-        seq, progress = _progress_queue.get()
-        notifiers[seq] = progress
-        total_progress = sum(notifiers.values()) / len(notifiers)
-        pbar.update(total_progress)
-
-    pbar.finish()
+    try:
+        while total_progress < 1:
+            seq, progress = progress_queue.get()
+            notifiers[seq] = progress
+            total_progress = sum(notifiers.values()) / len(notifiers)
+            pbar.update(total_progress)
+    except KeyboardInterrupt:
+        pass
+    else:
+        pbar.finish()
