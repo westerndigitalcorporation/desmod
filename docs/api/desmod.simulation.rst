@@ -15,6 +15,7 @@
    .. autoinstanceattribute:: duration
       :annotation:
    .. autoattribute:: now
+   .. automethod:: time(t=None, unit='s')
    .. autoattribute:: active_process
    .. automethod:: process(generator)
    .. automethod:: timeout(delay, value)

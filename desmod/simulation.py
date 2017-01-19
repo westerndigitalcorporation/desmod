@@ -64,16 +64,18 @@ class SimEnvironment(simpy.Environment):
         #: TraceManager instance.
         self.tracemgr = TraceManager(self)
 
-    def time(self, unit='s'):
+    def time(self, t=None, unit='s'):
         """The current simulation time scaled to specified unit.
 
+        :param float t: Time in simulation units. Default is :attr:`now`.
         :param str unit: Unit of time to scale to. Default is 's' (seconds).
-        :returns: Current simulation time scaled to to `unit`.
+        :returns: Simulation time scaled to to `unit`.
 
         """
         target_scale = parse_time(unit)
         ts_mag, ts_unit = self.timescale
-        return scale_time((self.now * ts_mag, ts_unit), target_scale)
+        sim_time = ((self.now if t is None else t) * ts_mag, ts_unit)
+        return scale_time(sim_time, target_scale)
 
 
 class _Workspace(object):

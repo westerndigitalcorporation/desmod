@@ -63,7 +63,7 @@ class TopTest(Component):
     def get_result_hook(self, result):
         if self.env.config.get('test.fail_get_result'):
             raise Exception('fail_get_result')
-        result['time_100ps'] = self.env.time('100 ps')
+        result['time_100ps'] = self.env.time(unit='100 ps')
 
 
 def test_pre_init_failure(config):
@@ -291,3 +291,11 @@ def test_sim_time(config):
     assert result['sim.time'] == 0.995
     assert result['sim.now'] == 99.5
     assert result['time_100ps'] == 9950000000
+
+
+def test_sim_time_non_default_t(config):
+    config['sim.timescale'] = '1 ms'
+    env = SimEnvironment(config)
+    assert env.time(1000, 's') == 1
+    assert env.time(1, 'ms') == 1
+    assert env.time(t=500) == 0.5
