@@ -4,6 +4,7 @@ import pytest
 from desmod.component import Component
 from desmod.simulation import (simulate, simulate_factors, SimEnvironment,
                                SimStopEvent)
+import desmod.progress
 
 
 pytestmark = pytest.mark.usefixtures('cleandir')
@@ -15,6 +16,16 @@ def cleandir(tmpdir):
     tmpdir.chdir()
     yield None
     os.chdir(origin)
+
+
+@pytest.fixture
+def no_progressbar(monkeypatch):
+    monkeypatch.setattr(desmod.progress, 'progressbar', None)
+
+
+@pytest.fixture
+def no_colorama(monkeypatch):
+    monkeypatch.setattr(desmod.progress, 'colorama', None)
 
 
 @pytest.fixture
@@ -141,9 +152,63 @@ def test_no_result_file(config):
     assert not os.listdir(config['sim.workspace'])
 
 
+def test_simulate_with_progress(config, capsys):
+    config['sim.progress.enable'] = True
+    config['sim.duration'] = '10 us'
+    simulate(config, TopTest)
+    _, err = capsys.readouterr()
+    assert err.endswith('(100%)\n')
+
+
+@pytest.mark.parametrize('max_width', [0, 1])
+def test_simulate_with_progress_tty(config, capsys, max_width):
+    config['sim.progress.enable'] = True
+    config['sim.progress.max_width'] = max_width
+    config['sim.duration'] = '10 us'
+    with capsys.disabled():
+        simulate(config, TopTest)
+
+
+def test_simulate_progress_non_one_timescale(config):
+    config['sim.progress.enable'] = True
+    config['sim.timescale'] = '100 ns'
+    config['sim.duration'] = '10 us'
+    simulate(config, TopTest)
+
+
 def test_simulate_factors(config):
     factors = [(['sim.seed'], [[1], [2], [3]])]
     results = simulate_factors(config, factors, TopTest)
+    assert len(results) == 3
+    for result in results:
+        assert result['sim.exception'] is None
+        assert os.path.exists(
+            os.path.join(result['config']['sim.workspace'],
+                         result['config']['sim.result.file']))
+
+
+def test_simulate_factors_progress(config, capfd):
+    config['sim.progress.enable'] = True
+    config['sim.duration'] = '10 us'
+    factors = [(['sim.seed'], [[1], [2], [3]])]
+    results = simulate_factors(config, factors, TopTest)
+    assert len(results) == 3
+    for result in results:
+        assert result['sim.exception'] is None
+        assert os.path.exists(
+            os.path.join(result['config']['sim.workspace'],
+                         result['config']['sim.result.file']))
+    out, err = capfd.readouterr()
+    assert out == ''
+    assert '3 of 3 simulations' in err
+
+
+def test_simulate_factors_progress_tty(config, capsys):
+    config['sim.progress.enable'] = True
+    config['sim.duration'] = '10 us'
+    factors = [(['sim.seed'], [[1], [2], [3]])]
+    with capsys.disabled():
+        results = simulate_factors(config, factors, TopTest)
     assert len(results) == 3
     for result in results:
         assert result['sim.exception'] is None
@@ -222,8 +287,10 @@ def test_progress_enabled(config):
                                        config['sim.result.file']))
 
 
-def test_many_progress_enabled(config):
+@pytest.mark.parametrize('max_width', [0, 1])
+def test_many_progress_enabled(config, max_width):
     config['sim.progress.enable'] = True
+    config['sim.progress.max_width'] = max_width
     factors = [(['sim.seed'], [[1], [2], [3]])]
     results = simulate_factors(config, factors, TopTest)
     for result in results:
@@ -234,6 +301,21 @@ def test_many_progress_enabled(config):
         assert os.path.exists(
             os.path.join(result['config']['sim.workspace'],
                          result['config']['sim.result.file']))
+
+
+def test_many_progress_no_pbar(config, capsys, no_progressbar):
+    config['sim.progress.enable'] = True
+    config['sim.duration'] = '10 us'
+    factors = [(['sim.seed'], [[1], [2], [3]])]
+    with capsys.disabled():
+        simulate_factors(config, factors, TopTest)
+
+
+def test_many_progress_no_colorama(config, capsys, no_colorama):
+    config['sim.progress.enable'] = True
+    factors = [(['sim.seed'], [[1], [2], [3]])]
+    with capsys.disabled():
+        simulate_factors(config, factors, TopTest)
 
 
 def test_workspace_env_init(config):
@@ -303,12 +385,14 @@ def test_sim_time_non_default_t(config):
     assert env.time(t=500) == 0.5
 
 
-def test_sim_until(config):
+@pytest.mark.parametrize('progress_enable', [True, False])
+def test_sim_until(config, progress_enable):
     class TestEnvironment(SimEnvironment):
         def __init__(self, config):
             super(TestEnvironment, self).__init__(config)
             self.until = SimStopEvent(self)
 
+    config['sim.progress.enable'] = progress_enable
     config['test.until_delay'] = 0
     result = simulate(config, TopTest, TestEnvironment)
     assert result['sim.now'] == 0.50

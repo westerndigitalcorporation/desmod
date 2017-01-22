@@ -1,7 +1,7 @@
 """Simulation model with batteries included."""
 
 from __future__ import division
-from contextlib import contextmanager, closing
+from contextlib import closing
 from multiprocessing import cpu_count, Process, Queue
 from threading import Thread
 import os
@@ -14,6 +14,9 @@ import six
 import yaml
 
 from desmod.config import factorial_config
+from desmod.progress import (standalone_progress_manager,
+                             get_multi_progress_manager,
+                             consume_multi_progress)
 from desmod.timescale import parse_time, scale_time
 from desmod.tracer import TraceManager
 
@@ -65,6 +68,11 @@ class SimEnvironment(simpy.Environment):
         #: configured "sim.duration", but may be overridden by subclasses.
         self.until = self.duration
 
+        #: From 'sim.seq', the simulation's sequence number when running
+        #: multiple related simulations or `None` when running a single
+        #: simulation.
+        self.seq = config.get('sim.seq')
+
         #: :class:`TraceManager` instance.
         self.tracemgr = TraceManager(self)
 
@@ -81,6 +89,13 @@ class SimEnvironment(simpy.Environment):
         sim_time = ((self.now if t is None else t) * ts_mag, ts_unit)
         return scale_time(sim_time, target_scale)
 
+    def get_progress(self):
+        if isinstance(self.until, SimStopEvent):
+            t_stop = self.until.t_stop
+        else:
+            t_stop = self.until
+        return self.seq, self.now, t_stop, self.timescale
+
 
 class SimStopEvent(simpy.Event):
     """Event appropriate for stopping the simulation.
@@ -92,6 +107,9 @@ class SimStopEvent(simpy.Event):
     simulation time.
 
     """
+    def __init__(self, env):
+        super(SimStopEvent, self).__init__(env)
+        self.t_stop = None
 
     def schedule(self, delay=0):
         assert not self.triggered
@@ -99,6 +117,7 @@ class SimStopEvent(simpy.Event):
         self._ok = True
         self._value = None
         self.env.schedule(self, simpy.events.URGENT, delay)
+        self.t_stop = self.env.now + delay
 
 
 class _Workspace(object):
@@ -122,7 +141,7 @@ class _Workspace(object):
 
 
 def simulate(config, top_type, env_type=SimEnvironment, reraise=True,
-             progress_queue=None):
+             progress_manager=standalone_progress_manager):
     """Initialize, elaborate, and run a simulation.
 
      All exceptions are caught by `simulate()` so they can be logged and
@@ -147,7 +166,7 @@ def simulate(config, top_type, env_type=SimEnvironment, reraise=True,
                 try:
                     top_type.pre_init(env)
                     env.tracemgr.flush()
-                    with _progress_notification(env, progress_queue):
+                    with progress_manager(env):
                         top = top_type(parent=None, env=env)
                         top.elaborate()
                         env.tracemgr.flush()
@@ -226,6 +245,9 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
     """
     progress_enable = any(config.setdefault('sim.progress.enable', False)
                           for config in configs)
+    max_width = 0
+    for config in configs:
+        max_width = max(max_width, config.setdefault('sim.progress.enable', 0))
 
     progress_queue = Queue() if progress_enable else None
     result_queue = Queue()
@@ -250,8 +272,9 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
         config_queue.put(None)  # A stop sentinel for each worker.
 
     if progress_enable:
-        progress_thread = Thread(target=_consume_progress,
-                                 args=(configs, progress_queue))
+        progress_thread = Thread(
+            target=consume_multi_progress,
+            args=(progress_queue, num_workers, len(configs), max_width))
         progress_thread.daemon = True
         progress_thread.start()
 
@@ -261,11 +284,13 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
 
 def _simulate_worker(top_type, env_type, reraise, progress_queue, config_queue,
                      result_queue):
+    progress_manager = get_multi_progress_manager(progress_queue)
     while True:
         config = config_queue.get()
         if config is None:
             break
-        result = simulate(config, top_type, env_type, reraise, progress_queue)
+        result = simulate(config, top_type, env_type, reraise,
+                          progress_manager)
         result_queue.put(result)
 
 
@@ -273,71 +298,3 @@ def _dump_result(filename, result):
     if filename is not None:
         with open(filename, 'w') as result_file:
             yaml.safe_dump(result, stream=result_file)
-
-
-def _get_progressbar(config):
-    import progressbar
-
-    pbar = progressbar.ProgressBar(min_value=0, max_value=1,
-                                   widgets=[progressbar.Percentage(),
-                                            progressbar.Bar(),
-                                            progressbar.ETA()])
-
-    max_width = config.setdefault('sim.progress.max_width')
-    if max_width and pbar.term_width > max_width:
-        pbar.term_width = max_width
-
-    return pbar
-
-
-@contextmanager
-def _progress_notification(env, progress_queue):
-    if env.config.setdefault('sim.progress.enable', False):
-        interval = env.duration / 100
-        seq = env.config.get('sim.seq')
-
-        if seq is None:
-            pbar = _get_progressbar(env.config)
-
-            def progress():
-                while True:
-                    pbar.update(env.now / env.duration)
-                    yield env.timeout(interval)
-
-            env.process(progress())
-
-            try:
-                yield None
-            finally:
-                pbar.finish()
-        else:
-            def progress():
-                while True:
-                    progress_queue.put((seq, env.now / env.duration))
-                    yield env.timeout(interval)
-
-            env.process(progress())
-
-            try:
-                yield None
-            finally:
-                progress_queue.put((seq, 1))
-    else:
-        yield None
-
-
-def _consume_progress(configs, progress_queue):
-    pbar = _get_progressbar(configs[0])
-    notifiers = {config['sim.seq']: 0 for config in configs}
-    total_progress = 0
-
-    try:
-        while total_progress < 1:
-            seq, progress = progress_queue.get()
-            notifiers[seq] = progress
-            total_progress = sum(notifiers.values()) / len(notifiers)
-            pbar.update(total_progress)
-    except KeyboardInterrupt:
-        pass
-    else:
-        pbar.finish()
