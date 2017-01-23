@@ -1,6 +1,23 @@
 Changlog
 ========
 
+desmod-0.3.0 (2017-01-23)
+-------------------------
+* [CHANGE] Overhaul progress display
+* [NEW] Flexible control of simulation stop criteria
+* [FIX] Support progress notification on spawned processes
+* [FIX] Remove dead path in test_simulation.py
+* [FIX] Various doc repairs to SimEnvironment
+* [CHANGE] Add t parameter to SimEnvironment.time()
+* [CHANGE Parse unit in SimEnvironment.time()
+* [NEW] Add desmod.config.fuzzy_match()
+* [REMOVE] Remove desmod.config.short_special()
+* [NEW] Add coveralls to travis test suite
+* [NEW] Add flush() to tracing subsystem
+* [CHANGE] Do not use tox with travis
+* [NEW] Add Python 3.6 support in travis
+* [FIX] Repair gas_station.py for Python 2
+
 desmod-0.2.0 (2016-10-25)
 -------------------------
 * [CHANGE] simulate_factors() now has factors parameter
