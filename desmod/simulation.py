@@ -247,7 +247,8 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
                           for config in configs)
     max_width = 0
     for config in configs:
-        max_width = max(max_width, config.setdefault('sim.progress.enable', 0))
+        max_width = max(config.setdefault('sim.progress.max_width', 0),
+                        max_width)
 
     progress_queue = Queue() if progress_enable else None
     result_queue = Queue()
