@@ -184,7 +184,8 @@ def consume_multi_progress(progress_queue, num_workers, num_simulations,
 def _consume_multi_display_simple(progress_queue, num_workers, num_simulations,
                                   max_width, fd):
     start_date = datetime.now()
-    end = '\r' if fd.isatty() else '\n'
+    isatty = fd.isatty()
+    end = '\r' if isatty else '\n'
     try:
         completed = set()
         _print_simple(len(completed), num_simulations, timedelta(), end, fd)
@@ -198,15 +199,17 @@ def _consume_multi_display_simple(progress_queue, num_workers, num_simulations,
                 completed.add(seq)
                 _print_simple(len(completed), num_simulations, td, end, fd)
                 last_print_date = now_date
-            elif fd.isatty() and td_print.total_seconds() >= 1:
+            elif isatty and td_print.total_seconds() >= 1:
                 _print_simple(len(completed), num_simulations, td, end, fd)
                 last_print_date = now_date
     finally:
-        if fd.isatty():
+        if isatty:
             print(file=fd)
 
 
 def _print_simple(num_completed, num_simulations, td, end, fd):
+    if fd.closed:
+        return
     print(timedelta(td.days, td.seconds),
           num_completed, 'of', num_simulations, 'simulations',
           '({:.0%})'.format(num_completed / num_simulations),
@@ -296,7 +299,6 @@ def _consume_multi_display_multi_pbar(progress_queue, num_workers,
 
 
 def _get_overall_pbar(num_simulations, max_width, fd):
-
     pbar = progressbar.ProgressBar(
         fd=fd,
         min_value=0,

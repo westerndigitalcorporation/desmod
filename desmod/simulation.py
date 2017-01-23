@@ -280,6 +280,14 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
         progress_thread.start()
 
     results = [result_queue.get() for _ in configs]
+
+    if progress_enable:
+        # Although this is a daemon thread, we still make a token attempt to
+        # join with it. This avoids a race with certain testing frameworks
+        # (ahem, py.test) that may monkey-patch and close stderr while
+        # progress_thread is still using it.
+        progress_thread.join(1)
+
     return sorted(results, key=lambda r: r['config']['sim.seq'])
 
 
