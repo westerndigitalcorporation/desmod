@@ -40,9 +40,6 @@ class TopTest(Component):
     def pre_init(cls, env):
         if env.config.get('test.fail_pre_init'):
             raise Exception('fail_pre_init')
-        if env.config.get('test.ensure_workspace'):
-            cwd = os.path.split(os.getcwd())[-1]
-            assert cwd == env.config['sim.workspace']
 
     def __init__(self, *args, **kwargs):
         super(TopTest, self).__init__(*args, **kwargs)
