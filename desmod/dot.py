@@ -16,7 +16,8 @@ _color_cycle = cycle([
 def component_to_dot(top,
                      show_hierarchy=True,
                      show_connections=True,
-                     show_processes=True):
+                     show_processes=True,
+                     colorscheme=''):
     """Produce a dot stream from a component hierarchy.
 
     The DOT language representation of the component instance hierarchy can
@@ -37,8 +38,16 @@ def component_to_dot(top,
         Should the inter-component connections be shown in the graph.
     :param bool show_processes:
         Should each component's processes be shown in the graph.
+    :param str colorscheme:
+        One of the `Brewer color schemes`_ supported by graphviz, e.g. "blues8"
+        or "set27". Each level of the component hierarchy will use a different
+        color from the color scheme. N.B. Brewer color schemes have between 3
+        and 12 colors; one should be chosen that has at least as many colors as
+        the depth of the component hierarchy.
     :returns str:
         DOT language representation of the component/connection graph(s).
+
+    .. _Brewer color schemes: http://graphviz.org/content/color-names#brewer
 
     """
     indent = '    '
@@ -47,7 +56,8 @@ def component_to_dot(top,
                  for line in _comp_hierarchy([top],
                                              show_hierarchy,
                                              show_connections,
-                                             show_processes))
+                                             show_processes,
+                                             colorscheme))
     if show_connections:
         lines.append('')
         lines.extend(indent + line
@@ -57,7 +67,8 @@ def component_to_dot(top,
 
 
 def _comp_hierarchy(component_group,
-                    show_hierarchy, show_connections, show_processes):
+                    show_hierarchy, show_connections, show_processes,
+                    colorscheme, _level=1):
     component = component_group[0]
     if len(component_group) == 1:
         label_name = _comp_name(component)
@@ -66,12 +77,17 @@ def _comp_hierarchy(component_group,
                                      _comp_name(component_group[-1]))
 
     if component._children and show_hierarchy:
-        style = 'dotted'
+        border_style = 'dotted'
     else:
-        style = 'rounded'
+        border_style = 'rounded'
+    if colorscheme:
+        style = 'style="{},filled",fillcolor="/{}/{}"'.format(
+            border_style, colorscheme, _level)
+    else:
+        style = 'style=' + border_style
 
     node_lines = [
-        '{} [shape=box,style={},label=<'.format(_comp_id(component), style)
+        '{} [shape=box,{},label=<'.format(_comp_id(component), style)
     ]
 
     label_lines = _comp_label(component, label_name, show_processes)
@@ -88,8 +104,13 @@ def _comp_hierarchy(component_group,
             indent = '    '
             lines = [
                 'subgraph {} {{'.format(_cluster_id(component)),
-                indent + 'label=<{}>'.format(_cluster_label(component_group))
+                indent + 'label=<{}>'.format(_cluster_label(component_group)),
             ]
+            if colorscheme:
+                lines.extend([
+                    indent + 'style="filled"',
+                    indent + 'fillcolor="/{}/{}"'.format(colorscheme, _level),
+                ])
         else:
             indent = ''
             lines = []
@@ -101,7 +122,9 @@ def _comp_hierarchy(component_group,
                 for line in _comp_hierarchy(child_group,
                                             show_hierarchy,
                                             show_connections,
-                                            show_processes))
+                                            show_processes,
+                                            colorscheme,
+                                            _level + 1))
         if show_hierarchy:
             lines.append('}')
         return lines
