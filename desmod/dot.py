@@ -87,7 +87,7 @@ def _comp_hierarchy(component_group,
         style = 'style=' + border_style
 
     node_lines = [
-        '{} [shape=box,{},label=<'.format(_comp_id(component), style)
+        '"{}" [shape=box,{},label=<'.format(_comp_scope(component), style)
     ]
 
     label_lines = _comp_label(component, label_name, show_processes)
@@ -103,7 +103,7 @@ def _comp_hierarchy(component_group,
         if show_hierarchy:
             indent = '    '
             lines = [
-                'subgraph {} {{'.format(_cluster_id(component)),
+                'subgraph "{}" {{'.format(_cluster_id(component)),
                 indent + 'label=<{}>'.format(_cluster_label(component_group)),
             ]
             if colorscheme:
@@ -143,9 +143,9 @@ def _comp_connections(component):
             attrs['label'] = '"{}"'.format(conn)
             attrs['color'] = attrs['fontcolor'] = next(_color_cycle)
 
-        lines.append('{dst_id} -> {src_id} [{attrs}];'
-                     .format(dst_id=_comp_id(component),
-                             src_id=_comp_id(src),
+        lines.append('"{dst_id}" -> "{src_id}" [{attrs}];'
+                     .format(dst_id=_comp_scope(component),
+                             src_id=_comp_scope(src),
                              attrs=_join_attrs(attrs)))
 
     for child_group in _child_type_groups(component):
@@ -164,18 +164,15 @@ def _child_type_groups(component):
 
 
 def _comp_name(component):
-    if component.name:
-        return component.name
-    else:
-        return type(component).__name__
+    return component.name if component.name else type(component).__name__
 
 
-def _comp_id(component):
-    return '{}_{}'.format(_comp_name(component), id(component))
+def _comp_scope(component):
+    return component.scope if component.scope else type(component).__name__
 
 
 def _cluster_id(component):
-    return 'cluster_{}_{}'.format(type(component).__name__, id(component))
+    return 'cluster_' + _comp_scope(component)
 
 
 def _cluster_label(component_group):
