@@ -266,7 +266,7 @@ def fuzzy_match(keys, fuzzy_key):
     elif not any((suffix_matches, split_matches)):
         raise KeyError(fuzzy_key)
     else:
-        raise KeyError(fuzzy_key + 'is ambiguous')
+        raise KeyError(fuzzy_key + ' is ambiguous')
 
 
 def fuzzy_lookup(config, fuzzy_key):
