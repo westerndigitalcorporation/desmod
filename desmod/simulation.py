@@ -159,6 +159,8 @@ def simulate(config, top_type, env_type=SimEnvironment, reraise=True,
     """
     t0 = timeit.default_timer()
     result = {}
+    result_file = config.setdefault('sim.result.file')
+    config_file = config.setdefault('sim.config.file')
     try:
         with _Workspace(config):
             env = env_type(config)
@@ -187,7 +189,8 @@ def simulate(config, top_type, env_type=SimEnvironment, reraise=True,
                     result['sim.now'] = env.now
                     result['sim.time'] = env.time()
                     result['sim.runtime'] = timeit.default_timer() - t0
-                    _dump_result(config.setdefault('sim.result.file'), result)
+                    _dump_dict(config_file, config)
+                    _dump_dict(result_file, result)
     except BaseException as e:
         if reraise:
             raise
@@ -303,7 +306,7 @@ def _simulate_worker(top_type, env_type, reraise, progress_queue, config_queue,
         result_queue.put(result)
 
 
-def _dump_result(filename, result):
+def _dump_dict(filename, dump_dict):
     if filename is not None:
-        with open(filename, 'w') as result_file:
-            yaml.safe_dump(result, stream=result_file)
+        with open(filename, 'w') as dump_file:
+            yaml.safe_dump(dump_dict, stream=dump_file)
