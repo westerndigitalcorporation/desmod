@@ -1,3 +1,30 @@
+"""Generate graphical representation of component hierarchy.
+
+Component hierarchy, connections, and processes can be represented graphically
+using the `Graphviz`_ `DOT language`_.
+
+The :func:`component_to_dot()` function produces a DOT language string that can
+be rendered into a variety of formats using Graphviz tools.  Because the
+component hierarchy, connections, and processes are determined dynamically,
+:func:`component_to_dot()` must be called with an instantiated component. A
+good way to integrate this capabililty into a model is to call
+:func:`component_to_dot()` from a component's
+:meth:`desmod.component.Component.elab_hook()` method.
+
+The ``dot`` program from `Graphviz`_ may be used to render the generated DOT
+language description of the component hierarchy::
+
+    dot -Tpng -o foo.png foo.dot
+
+For large component hierarchies, the ``osage`` program (also part of Graphviz)
+can produce a more compact layout::
+
+    osage -Tpng -o foo.png foo.dot
+
+.. _Graphviz: http://graphviz.org/
+.. _DOT language: http://graphviz.org/content/dot-language
+
+"""
 from itertools import cycle
 
 from desmod.component import Component
