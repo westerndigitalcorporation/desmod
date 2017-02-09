@@ -168,6 +168,14 @@ class VCDTracer(Tracer):
             spawn_gtkwave_interactive(dump_filename, save_filename,
                                       quiet=quiet)
 
+        start_time = self.env.config.setdefault('sim.vcd.start_time', '')
+        stop_time = self.env.config.setdefault('sim.vcd.stop_time', '')
+        t_start = (scale_time(parse_time(start_time), self.env.timescale)
+                   if start_time else None)
+        t_stop = (scale_time(parse_time(stop_time), self.env.timescale)
+                  if stop_time else None)
+        self.env.process(self._start_stop(t_start, t_stop))
+
     def vcd_now(self):
         return self.env.now * self.scale_factor
 
@@ -231,6 +239,37 @@ class VCDTracer(Tracer):
                 self.vcd.change(var, self.vcd_now(), value)
 
         return trace_callback
+
+    def _start_stop(self, t_start, t_stop):
+        # Wait for simulation to start to ensure all variable registration is
+        # complete before doing and dump_on()/dump_off() calls.
+        yield self.env.timeout(0)
+
+        if t_start is None and t_stop is None:
+            # |vvvvvvvvvvvvvv|
+            pass
+        elif t_start is None:
+            # |vvvvvv--------|
+            yield self.env.timeout(t_stop)
+            self.vcd.dump_off(self.vcd_now())
+        elif t_stop is None:
+            # |--------vvvvvv|
+            self.vcd.dump_off(self.vcd_now())
+            yield self.env.timeout(t_start)
+            self.vcd.dump_on(self.vcd_now())
+        elif t_start <= t_stop:
+            # |---vvvvvv-----|
+            self.vcd.dump_off(self.vcd_now())
+            yield self.env.timeout(t_start)
+            self.vcd.dump_on(self.vcd_now())
+            yield self.env.timeout(t_stop - t_start)
+            self.vcd.dump_off(self.vcd_now())
+        else:
+            # |vvv-------vvvv|
+            yield self.env.timeout(t_stop)
+            self.vcd.dump_off(self.vcd_now())
+            yield self.env.timeout(t_start - t_stop)
+            self.vcd.dump_on(self.vcd_now())
 
 
 class TraceManager(object):
