@@ -1,6 +1,16 @@
 Changlog
 ========
 
+desmod-0.3.1 (2017-02-10)
+-------------------------
+* [NEW] Add sim.vcd.start_time and sim.vcd.stop_time
+* [NEW] Add unit tests for desmod.tracer
+* [NEW] Dump configuration to file in workspace
+* [NEW] Add unit tests for desmod.dot
+* [FIX] Use component scope instead of id() for DOT nodes
+* [NEW] Colored component hierarchy in DOT
+* [FIX] Repair typo in fuzzy_match() exception
+
 desmod-0.3.0 (2017-01-23)
 -------------------------
 * [CHANGE] Overhaul progress display
