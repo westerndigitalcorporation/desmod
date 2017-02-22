@@ -86,6 +86,32 @@ class NamedManager(object):
             yield name, deps, cfg
 
 
+def apply_user_config(config, user_config):
+    """Apply user-provided configuration to a configuration.
+
+    Each key/value from `user_config` is validated and then used to override
+    the same key in `config`.
+
+    :param dict config: The configuration to update.
+    :param dict user_config: The user-provided config with overriding items.
+    :raises .ConfigError: For invalid user keys or values.
+
+    """
+    for key, value in user_config.items():
+        try:
+            current_value = config[key]
+        except KeyError:
+            raise ConfigError('Invalid config key: {}'.format(key))
+        current_type = type(current_value)
+        if not isinstance(value, current_type):
+            try:
+                value = current_type(value)
+            except (ValueError, TypeError):
+                raise ConfigError('Failed to coerce {} to {} for {}'.format(
+                    value, current_type.__name__, key))
+        config[key] = value
+
+
 def apply_user_overrides(config, overrides, eval_locals=None):
     """Apply user-provided overrides to a configuration.
 

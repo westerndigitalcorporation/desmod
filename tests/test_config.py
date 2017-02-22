@@ -3,6 +3,7 @@ import pytest
 
 from desmod.config import (ConfigError,
                            NamedManager,
+                           apply_user_config,
                            apply_user_overrides,
                            fuzzy_lookup,
                            factorial_config,
@@ -123,6 +124,28 @@ def test_user_override_str(config):
 def test_user_override_str_int(config):
     apply_user_overrides(config, [('a.b.c', '123')])
     assert config['a.b.c'] == '123'
+
+
+def test_user_config(config):
+    user_config = {
+        'foo.bar.baz': 99,
+        'g.h.i': {'c': 1, 'd': 2},
+    }
+    apply_user_config(config, user_config)
+    assert config['foo.bar.baz'] == 99
+    assert config['g.h.i'] == {'c': 1, 'd': 2}
+
+
+def test_user_config_bad_key(config):
+    user_config = {'a.bad.key': 1}
+    with pytest.raises(ConfigError):
+        apply_user_config(config, user_config)
+
+
+def test_user_config_bad_value(config):
+    user_config = {'foo.bar.baz': 'not an int'}
+    with pytest.raises(ConfigError):
+        apply_user_config(config, user_config)
 
 
 @pytest.mark.skipif(hasattr(sys, 'pypy_version_info'),
