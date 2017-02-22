@@ -135,7 +135,7 @@ def parse_user_factors(config, user_factors, eval_locals=None):
     :returns:
         List of keys, values pairs. The returned list of factors is suitable
         for passing to :func:`simulate_factors`.
-    :raises `desmod.config.ConfigError`: For invalid user keys or expressions.
+    :raises .ConfigError: For invalid user keys or expressions.
 
     """
     return [parse_user_factor(config, user_keys, user_exprs, eval_locals)
@@ -177,7 +177,7 @@ def parse_user_factor(config, user_keys, user_exprs, eval_locals=None):
         .. Note:: All sequences in the returned factor are expressed as lists,
                   not tuples. This is done to improve YAML serialization.
 
-    :raises `desmod.config.ConfigError`: For invalid keys or value expressions.
+    :raises .ConfigError: For invalid keys or value expressions.
 
     """
     current = [fuzzy_lookup(config, user_key.strip())
@@ -247,7 +247,7 @@ def fuzzy_match(keys, fuzzy_key):
     :param keys: Sequence of canonical key names.
     :param str fuzzy_key: Fuzzy key to match against canonical keys.
     :returns: Canonical matching key name.
-    :raises: `KeyError` if fuzzy key does not match.
+    :raises KeyError: If fuzzy key does not match.
 
     """
     suffix_matches = []
@@ -280,7 +280,7 @@ def fuzzy_lookup(config, fuzzy_key):
     :returns:
         `(key, value)` tuple. The returned key is the regular, fully-qualified
         key name, not the provided `fuzzy_key`.
-    :raises `desmod.config.ConfigError`: For non-matching `fuzzy_key`.
+    :raises .ConfigError: For non-matching `fuzzy_key`.
 
     """
     try:

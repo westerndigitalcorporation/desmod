@@ -18,4 +18,6 @@
 
 .. autofunction:: factorial_config
 
+.. autofunction:: fuzzy_match
+
 .. autofunction:: fuzzy_lookup
