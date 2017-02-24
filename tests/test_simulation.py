@@ -1,5 +1,8 @@
+import json
 import os
 import pytest
+
+import yaml
 
 from desmod.component import Component
 from desmod.simulation import (simulate, simulate_factors, SimEnvironment,
@@ -406,3 +409,37 @@ def test_sim_until(config, progress_enable):
     config['test.until_delay'] = 0.25
     result = simulate(config, TopTest, TestEnvironment)
     assert result['sim.now'] == 0.75
+
+
+def test_sim_json_result(config):
+    config['sim.result.file'] = 'result.json'
+    result = simulate(config, TopTest)
+    workspace = config['sim.workspace']
+    with open(os.path.join(workspace, config['sim.result.file'])) as f:
+        assert json.load(f) == result
+
+
+@pytest.mark.parametrize('ext, parser', [
+    ('yaml', yaml.load),
+    ('yml', yaml.load),
+    ('json', json.load),
+    ('py', lambda f: eval(f.read())),
+])
+def test_sim_result_format(config, ext, parser):
+    config['sim.result.file'] = 'result.' + ext
+    config['sim.config.file'] = 'config.' + ext
+    result = simulate(config, TopTest)
+    workspace = config['sim.workspace']
+    with open(os.path.join(workspace, config['sim.result.file'])) as f:
+        assert parser(f) == result
+    with open(os.path.join(workspace, config['sim.config.file'])) as f:
+        assert parser(f) == config
+
+
+def test_sim_invalid_result_format(config):
+    config['sim.result.file'] = 'result.bogus'
+    with pytest.raises(ValueError):
+        simulate(config, TopTest)
+
+    result = simulate(config, TopTest, reraise=False)
+    assert result['sim.exception'] is not None

@@ -3,7 +3,9 @@
 from __future__ import division
 from contextlib import closing
 from multiprocessing import cpu_count, Process, Queue
+from pprint import pprint
 from threading import Thread
+import json
 import os
 import random
 import shutil
@@ -308,5 +310,14 @@ def _simulate_worker(top_type, env_type, reraise, progress_queue, config_queue,
 
 def _dump_dict(filename, dump_dict):
     if filename is not None:
+        _, ext = os.path.splitext(filename)
+        if ext not in ['.yaml', '.yml', '.json', '.py']:
+            raise ValueError('Invalid extension: {}'.format(ext))
         with open(filename, 'w') as dump_file:
-            yaml.safe_dump(dump_dict, stream=dump_file)
+            if ext in ['.yaml', '.yml']:
+                yaml.safe_dump(dump_dict, stream=dump_file)
+            elif ext == '.json':
+                json.dump(dump_dict, dump_file, sort_keys=True, indent=2)
+            else:
+                assert ext == '.py'
+                pprint(dump_dict, stream=dump_file)
