@@ -1,6 +1,14 @@
 Changlog
 ========
 
+desmod-0.3.2 (2017-02-24)
+-------------------------
+* [FIX] Documentation repairs for desmod.config
+* [FIX] Add tests for sim.config.file
+* [FIX] Annotate no coverage line in test_dot.py
+* [NEW] Add desmod.config.apply_user_config()
+* [NEW] Support dumping JSON or Python config and result
+
 desmod-0.3.1 (2017-02-10)
 -------------------------
 * [NEW] Add sim.vcd.start_time and sim.vcd.stop_time
