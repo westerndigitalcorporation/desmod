@@ -31,6 +31,7 @@ def no_colorama(monkeypatch):
 @pytest.fixture
 def config():
     return {
+        'sim.config.file': 'config.yaml',
         'sim.result.file': 'result.yaml',
         'sim.workspace': 'workspace',
         'sim.workspace.overwrite': False,
@@ -99,8 +100,9 @@ def test_init_failure(config):
     assert result['sim.time'] == 0
     assert result['sim.runtime'] > 0
     assert result['config']['test.fail_init']
-    assert os.path.exists(os.path.join(config['sim.workspace'],
-                                       config['sim.result.file']))
+    for file_key in ['sim.result.file', 'sim.config.file']:
+        assert os.path.exists(os.path.join(config['sim.workspace'],
+                                           config[file_key]))
 
 
 def test_simulate_fail(config):
@@ -111,8 +113,9 @@ def test_simulate_fail(config):
     assert result['sim.time'] == 0.5e-6
     assert result['sim.runtime'] > 0
     assert result['config']['test.fail_simulate']
-    assert os.path.exists(os.path.join(config['sim.workspace'],
-                                       config['sim.result.file']))
+    for file_key in ['sim.result.file', 'sim.config.file']:
+        assert os.path.exists(os.path.join(config['sim.workspace'],
+                                           config[file_key]))
 
 
 def test_post_simulate_fail(config):
@@ -123,8 +126,9 @@ def test_post_simulate_fail(config):
     assert result['sim.time'] == 1e-6
     assert result['sim.runtime'] > 0
     assert result['config']['test.fail_post_simulate']
-    assert os.path.exists(os.path.join(config['sim.workspace'],
-                                       config['sim.result.file']))
+    for file_key in ['sim.result.file', 'sim.config.file']:
+        assert os.path.exists(os.path.join(config['sim.workspace'],
+                                           config[file_key]))
 
 
 def test_get_result_fail(config):
@@ -135,8 +139,9 @@ def test_get_result_fail(config):
     assert result['sim.time'] == 1e-6
     assert result['sim.runtime'] > 0
     assert result['config']['test.fail_get_result']
-    assert os.path.exists(os.path.join(config['sim.workspace'],
-                                       config['sim.result.file']))
+    for file_key in ['sim.result.file', 'sim.config.file']:
+        assert os.path.exists(os.path.join(config['sim.workspace'],
+                                           config[file_key]))
 
 
 def test_simulate_reraise(config):
@@ -147,6 +152,7 @@ def test_simulate_reraise(config):
 
 def test_no_result_file(config):
     config.pop('sim.result.file')
+    config.pop('sim.config.file')
     result = simulate(config, TopTest)
     assert result['sim.exception'] is None
     assert not os.listdir(config['sim.workspace'])
