@@ -38,7 +38,7 @@ class B(Component):
         self.add_process(self.my_proc)
 
     def my_proc(self):
-        yield self.env.timeout(1)
+        yield self.env.timeout(1)  # pragma: no coverage
 
 
 def test_hierarchy_only(top):
