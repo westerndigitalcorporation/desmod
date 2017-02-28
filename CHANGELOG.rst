@@ -1,6 +1,12 @@
 Changlog
 ========
 
+desmod-0.3.3 (2017-02-28)
+-------------------------
+* [CHANGE] Make NamedManager.name() deps argument optional
+* [FIX] Add test for desmod.config.parse_user_factors()
+* [FIX] More testing for tracer.py
+
 desmod-0.3.2 (2017-02-24)
 -------------------------
 * [FIX] Documentation repairs for desmod.config
