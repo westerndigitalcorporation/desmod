@@ -35,10 +35,10 @@ def test_named_reuse(named_mgr):
 
 
 def test_named_resolve(named_mgr):
-    named_mgr.name('www', [], {'w': 0})
+    named_mgr.name('www', cfg={'w': 0})
     named_mgr.name('xxx', [], {'x': 1})
     named_mgr.name('yyy', ['xxx', 'www'], {'y': 2})
-    named_mgr.name('zzz', ['yyy'], {'z': 3})
+    named_mgr.name('zzz', deps=['yyy'], cfg={'z': 3})
     named_mgr.name('qqq', ['zzz'])
     assert named_mgr.resolve('qqq') == {'w': 0, 'x': 1, 'y': 2, 'z': 3}
 

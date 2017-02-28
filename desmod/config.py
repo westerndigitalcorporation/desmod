@@ -48,7 +48,7 @@ class NamedManager(object):
     def __init__(self):
         self._named_configs = {}
 
-    def name(self, name, deps, cfg=None):
+    def name(self, name, deps=None, cfg=None):
         """Declare a new configuration group.
 
         A configuration group consists of a name, a list of dependencies, and a
@@ -62,6 +62,8 @@ class NamedManager(object):
         """
         if name in self._named_configs:
             raise ConfigError('name already used: {}'.format(name))
+        if deps is None:
+            deps = []
         if cfg is None:
             cfg = {}
         self._named_configs[name] = (deps, cfg)
