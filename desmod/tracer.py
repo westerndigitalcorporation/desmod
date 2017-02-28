@@ -34,23 +34,23 @@ class Tracer(object):
                 not any(r.match(scope) for r in self._exclude_re))
 
     def open(self):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def close(self):
         if self.enabled:
             self._close()
 
     def _close(self):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def flush(self):
         pass
 
     def activate_probe(self, scope, target, **hints):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def activate_trace(self, scope, **hints):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def trace_exception(self):
         pass

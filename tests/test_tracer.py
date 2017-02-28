@@ -4,6 +4,7 @@ import pytest
 import simpy
 
 from desmod.component import Component
+from desmod.queue import Queue
 from desmod.simulation import simulate
 
 pytestmark = pytest.mark.usefixtures('cleandir')
@@ -33,6 +34,7 @@ def config():
         'sim.vcd.start_time': '',
         'sim.vcd.stop_time': '',
         'sim.workspace': 'workspace',
+        'test.raise': False,
     }
 
 
@@ -44,6 +46,7 @@ class TopTest(Component):
         super(TopTest, self).__init__(*args, **kwargs)
         self.container = simpy.Container(self.env)
         self.resource = simpy.Resource(self.env)
+        self.queue = Queue(self.env)
         self.a = CompA(self)
         self.b = CompB(self)
         hints = {}
@@ -53,6 +56,13 @@ class TopTest(Component):
             hints['vcd'] = {}
         self.auto_probe('container', **hints)
         self.auto_probe('resource', **hints)
+        self.auto_probe('queue', **hints)
+        self.trace_some = self.get_trace_function(
+            'something', vcd={'var_type': 'real'}, log={'level': 'INFO'})
+        self.trace_other = self.get_trace_function(
+            'otherthing', vcd={'var_type': 'integer',
+                               'init': ('z', 'z'),
+                               'size': (8, 8)})
         self.add_process(self.loop)
 
     def connect_children(self):
@@ -64,6 +74,10 @@ class TopTest(Component):
             yield self.env.timeout(5)
             with self.resource.request() as req:
                 yield req
+            self.trace_some(17.0)
+            self.trace_other(42, 17)
+            if self.env.config.get('test.raise'):
+                raise Exception('oops')
 
 
 class CompA(Component):
@@ -100,6 +114,18 @@ def test_defaults(config):
                          'sim.vcd.gtkw_file']:
         assert not os.path.exists(os.path.join(workspace,
                                                config[filename_key]))
+
+
+def test_exception(config):
+    config['sim.log.enable'] = True
+    config['test.raise'] = True
+    with pytest.raises(Exception):
+        simulate(config, TopTest)
+    log_path = os.path.join(config['sim.workspace'], config['sim.log.file'])
+    assert os.path.exists(log_path)
+    with open(log_path) as f:
+        log = f.read()
+    assert 'ERROR' in log
 
 
 def test_log(config):
@@ -186,3 +212,14 @@ def test_vcd_stop_then_start(config):
         assert '#1\n' in vcd_str
         assert '#5' not in vcd_str
         assert '#9' in vcd_str
+
+
+def test_vcd_timescale(config):
+    config['sim.vcd.enable'] = True
+    config['sim.vcd.timescale'] = '10 s'
+    simulate(config, TopTest)
+    dump_path = os.path.join(config['sim.workspace'],
+                             config['sim.vcd.dump_file'])
+    with open(dump_path) as dump:
+        vcd_str = dump.read()
+        assert '$timescale 10 s' in vcd_str
