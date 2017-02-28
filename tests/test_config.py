@@ -8,6 +8,7 @@ from desmod.config import (ConfigError,
                            fuzzy_lookup,
                            factorial_config,
                            parse_user_factor,
+                           parse_user_factors,
                            _safe_eval)
 
 
@@ -184,6 +185,23 @@ def test_parse_user_factor(user_keys, user_exprs, expected):
     assert expected == factor
     assert all(isinstance(value, type(expected_value))
                for value, expected_value in zip(factor[1], expected[1]))
+
+
+def test_parse_user_factors(config):
+    config = {
+        'a.b.foo': 1,
+        'a.b.bar': 2.0,
+        'a.b.baz': 'three',
+        'c.d.baz': True,
+    }
+
+    user_factors = [['foo', '1,2,3'],
+                    ['bar', '2.0, 4.0']]
+
+    factors = parse_user_factors(config, user_factors)
+
+    assert factors[0] == [['a.b.foo'], [[1], [2], [3]]]
+    assert factors[1] == [['a.b.bar'], [[2.0], [4.0]]]
 
 
 @pytest.mark.parametrize('user_keys, user_exprs, err_str', [
