@@ -248,6 +248,9 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
     :returns: Sequence of result dictionaries for each simulation.
 
     """
+    if jobs is not None and jobs < 1:
+        raise ValueError('Invalid number of jobs: {}'.format(jobs))
+
     progress_enable = any(config.setdefault('sim.progress.enable', False)
                           for config in configs)
 

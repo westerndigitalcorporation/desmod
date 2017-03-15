@@ -385,6 +385,15 @@ def test_many_with_duplicate_workspace(config):
         simulate_many(configs, TopTest)
 
 
+def test_many_user_jobs(config):
+    simulate_many([config], TopTest, jobs=1)
+
+
+def test_many_invalid_jobs(config):
+    with pytest.raises(ValueError):
+        simulate_many([config], TopTest, jobs=0)
+
+
 def test_sim_time(config):
     config['sim.timescale'] = '10 ms'
     config['sim.duration'] = '995 ms'
