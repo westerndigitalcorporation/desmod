@@ -24,7 +24,7 @@ for configuring a model.
 
 """
 from copy import deepcopy
-from collections import Sequence
+from collections import namedtuple, Sequence
 from itertools import product
 
 import six
@@ -36,6 +36,16 @@ class ConfigError(Exception):
     """Exception raised for a variety of configuration errors."""
 
 
+class NamedConfig(namedtuple('NamedConfig',
+                             'category name doc depend config')):
+    """Named configuration group details.
+
+    Iterating a :class:`NamedManager` instance yields ``NamedConfig``
+    instances.
+
+    """
+
+
 class NamedManager(object):
     """Manage named configuration groups.
 
@@ -44,11 +54,14 @@ class NamedManager(object):
     fully-resolved configuration based on one or more configuration group
     names.
 
+    Iterating a ``NamedManager`` instance will yield :class:`NamedConfig`
+    instances for each registered named configuration.
+
     """
     def __init__(self):
         self._named_configs = {}
 
-    def name(self, name, deps=None, cfg=None):
+    def name(self, name, depend=None, config=None, category='', doc=''):
         """Declare a new configuration group.
 
         A configuration group consists of a name, a list of dependencies, and a
@@ -56,17 +69,20 @@ class NamedManager(object):
         configuration group that may be later resolved with :meth:`resolve()`.
 
         :param str name: Name of new configuration group.
-        :param list deps: List of configuration group dependencies.
-        :param dict cfg: Configuration key/values.
+        :param list depend: List of configuration group dependencies.
+        :param dict config: Configuration key/values.
+        :param str category: Optional category.
+        :param str doc: Optional documentation for named configuration group.
 
         """
         if name in self._named_configs:
             raise ConfigError('name already used: {}'.format(name))
-        if deps is None:
-            deps = []
-        if cfg is None:
-            cfg = {}
-        self._named_configs[name] = (deps, cfg)
+        if depend is None:
+            depend = []
+        if config is None:
+            config = {}
+        self._named_configs[name] = \
+            NamedConfig(category, name, doc, depend, config)
 
     def resolve(self, *names):
         """Resolve named configs into a new config object."""
@@ -78,14 +94,13 @@ class NamedManager(object):
         for name in names:
             if name not in self._named_configs:
                 raise ConfigError('unknown named config: {}'.format(name))
-            deps, cfg = self._named_configs[name]
-            self._resolve(resolved, *deps)
-            resolved.update(cfg)
+            nc = self._named_configs[name]
+            self._resolve(resolved, *nc.depend)
+            resolved.update(nc.config)
 
-    def iter(self):
-        """Iterate named config (name, deps, cfg) tuples."""
-        for name, (deps, cfg) in self._named_configs.items():
-            yield name, deps, cfg
+    def __iter__(self):
+        """Iterate named config tuples."""
+        return six.itervalues(self._named_configs)
 
 
 def apply_user_config(config, user_config):

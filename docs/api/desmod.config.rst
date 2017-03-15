@@ -7,6 +7,10 @@
 .. autoclass:: ConfigError
    :members:
 
+.. autoclass:: NamedConfig
+   :inherited-members:
+   :members:
+
 .. autoclass:: NamedManager
    :members:
 
