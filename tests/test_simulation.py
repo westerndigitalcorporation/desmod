@@ -5,8 +5,8 @@ import pytest
 import yaml
 
 from desmod.component import Component
-from desmod.simulation import (simulate, simulate_factors, SimEnvironment,
-                               SimStopEvent)
+from desmod.simulation import (simulate, simulate_factors, simulate_many,
+                               SimEnvironment, SimStopEvent)
 import desmod.progress
 
 
@@ -192,7 +192,7 @@ def test_simulate_factors(config):
     for result in results:
         assert result['sim.exception'] is None
         assert os.path.exists(
-            os.path.join(result['config']['sim.workspace'],
+            os.path.join(result['config']['meta.sim.workspace'],
                          result['config']['sim.result.file']))
 
 
@@ -205,7 +205,7 @@ def test_simulate_factors_progress(config, capfd):
     for result in results:
         assert result['sim.exception'] is None
         assert os.path.exists(
-            os.path.join(result['config']['sim.workspace'],
+            os.path.join(result['config']['meta.sim.workspace'],
                          result['config']['sim.result.file']))
     out, err = capfd.readouterr()
     assert out == ''
@@ -222,7 +222,7 @@ def test_simulate_factors_progress_tty(config, capsys):
     for result in results:
         assert result['sim.exception'] is None
         assert os.path.exists(
-            os.path.join(result['config']['sim.workspace'],
+            os.path.join(result['config']['meta.sim.workspace'],
                          result['config']['sim.result.file']))
 
 
@@ -235,7 +235,7 @@ def test_simulate_factors_no_overwrite(config):
     for result in results:
         assert result['sim.exception'] is None
         assert os.path.exists(
-            os.path.join(result['config']['sim.workspace'],
+            os.path.join(result['config']['meta.sim.workspace'],
                          result['config']['sim.result.file']))
 
     with open(os.path.join(config['sim.workspace'], 'cookie.txt'), 'w') as f:
@@ -248,7 +248,7 @@ def test_simulate_factors_no_overwrite(config):
     for result in results:
         assert result['sim.exception'] is None
         assert os.path.exists(
-            os.path.join(result['config']['sim.workspace'],
+            os.path.join(result['config']['meta.sim.workspace'],
                          result['config']['sim.result.file']))
 
     with open(os.path.join(config['sim.workspace'], 'cookie.txt')) as f:
@@ -264,7 +264,7 @@ def test_simulate_factors_overwrite(config):
     for result in results:
         assert result['sim.exception'] is None
         assert os.path.exists(
-            os.path.join(result['config']['sim.workspace'],
+            os.path.join(result['config']['meta.sim.workspace'],
                          result['config']['sim.result.file']))
 
     with open(os.path.join(config['sim.workspace'], 'cookie.txt'), 'w') as f:
@@ -277,7 +277,7 @@ def test_simulate_factors_overwrite(config):
     for result in results:
         assert result['sim.exception'] is None
         assert os.path.exists(
-            os.path.join(result['config']['sim.workspace'],
+            os.path.join(result['config']['meta.sim.workspace'],
                          result['config']['sim.result.file']))
 
     assert not os.path.exists(os.path.join(config['sim.workspace'],
@@ -308,7 +308,7 @@ def test_many_progress_enabled(config, max_width):
         assert result['sim.time'] == 1e-6
         assert result['sim.runtime'] > 0
         assert os.path.exists(
-            os.path.join(result['config']['sim.workspace'],
+            os.path.join(result['config']['meta.sim.workspace'],
                          result['config']['sim.result.file']))
 
 
@@ -375,6 +375,14 @@ def test_workspace_is_curdir(config):
     # '.' is not supposed to be overwritten
     assert os.path.exists('first-result.yaml')
     assert os.path.exists('second-result.yaml')
+
+
+def test_many_with_duplicate_workspace(config):
+    configs = [config.copy() for _ in range(2)]
+    configs[0]['sim.workspace'] = os.path.join('tmp', os.pardir, 'workspace')
+    configs[1]['sim.workspace'] = 'workspace'
+    with pytest.raises(ValueError):
+        simulate_many(configs, TopTest)
 
 
 def test_sim_time(config):

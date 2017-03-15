@@ -124,7 +124,9 @@ class SimStopEvent(simpy.Event):
 class _Workspace(object):
     """Context manager for workspace directory management."""
     def __init__(self, config):
-        self.workspace = config.setdefault('sim.workspace', os.curdir)
+        self.workspace = config.setdefault('meta.sim.workspace',
+                                           config.setdefault('sim.workspace',
+                                                             os.curdir))
         self.overwrite = config.setdefault('sim.workspace.overwrite', False)
         self.prev_dir = os.getcwd()
 
@@ -222,14 +224,13 @@ def simulate_factors(base_config, factors, top_type,
 
     """
     configs = list(factorial_config(base_config, factors, 'meta.sim.special'))
-    base_workspace = base_config.setdefault('sim.workspace', os.curdir)
+    ws = base_config.setdefault('sim.workspace', os.curdir)
     overwrite = base_config.setdefault('sim.workspace.overwrite', False)
     for index, config in enumerate(configs):
-        config['sim.workspace'] = os.path.join(base_workspace, str(index))
-    if (overwrite and
-            os.path.relpath(base_workspace) != os.curdir and
-            os.path.isdir(base_workspace)):
-        shutil.rmtree(base_workspace)
+        config['meta.sim.index'] = index
+        config['meta.sim.workspace'] = os.path.join(ws, str(index))
+    if overwrite and os.path.relpath(ws) != os.curdir and os.path.isdir(ws):
+        shutil.rmtree(ws)
     return simulate_many(configs, top_type, env_type, jobs)
 
 
@@ -249,17 +250,26 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
     """
     progress_enable = any(config.setdefault('sim.progress.enable', False)
                           for config in configs)
-    max_width = 0
-    for config in configs:
-        max_width = max(config.setdefault('sim.progress.max_width', 0),
-                        max_width)
 
     progress_queue = Queue() if progress_enable else None
     result_queue = Queue()
     config_queue = Queue()
 
+    workspaces = set()
+    max_width = 0
     for index, config in enumerate(configs):
-        config['meta.sim.index'] = index
+        max_width = max(config.setdefault('sim.progress.max_width', 0),
+                        max_width)
+
+        workspace = os.path.normpath(
+            config.setdefault('meta.sim.workspace',
+                              config.setdefault('sim.workspace',
+                                                os.curdir)))
+        if workspace in workspaces:
+            raise ValueError('Duplicate workspace: {}'.format(workspace))
+        workspaces.add(workspace)
+
+        config.setdefault('meta.sim.index', index)
         config['sim.progress.enable'] = progress_enable
         config_queue.put(config)
 
