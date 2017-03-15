@@ -36,7 +36,7 @@ def standalone_progress_manager(env):
             try:
                 yield None
             finally:
-                _print_progress(env.seq, env.now, env.now, env.timescale,
+                _print_progress(env.sim_index, env.now, env.now, env.timescale,
                                 end='\n', fd=sys.stderr)
     else:
         yield None
@@ -51,18 +51,18 @@ def _standalone_display_process(env, period_s, fd):
     interval = 1
     end = '\r' if fd.isatty() else '\n'
     while True:
-        seq, now, t_stop, timescale = env.get_progress()
-        _print_progress(seq, now, t_stop, timescale, end=end, fd=fd)
+        sim_index, now, t_stop, timescale = env.get_progress()
+        _print_progress(sim_index, now, t_stop, timescale, end=end, fd=fd)
         t0 = timeit.default_timer()
         yield env.timeout(interval)
         t1 = timeit.default_timer()
         interval *= period_s / (t1 - t0)
 
 
-def _print_progress(seq, now, t_stop, timescale, end, fd):
+def _print_progress(sim_index, now, t_stop, timescale, end, fd):
     parts = []
-    if seq:
-        parts.append('Seq ' + str(seq))
+    if sim_index:
+        parts.append('Sim ' + str(sim_index))
     magnitude, units = timescale
     if magnitude == 1:
         parts.append('{:6.0f} {}'.format(now, units))
@@ -81,7 +81,7 @@ def _get_standalone_pbar(env, max_width, fd):
         fd=fd,
         min_value=0,
         max_value=progressbar.UnknownLength,
-        widgets=_get_progressbar_widgets(env.seq, env.timescale,
+        widgets=_get_progressbar_widgets(env.sim_index, env.timescale,
                                          know_stop_time=False))
 
     if max_width and pbar.term_width > max_width:
@@ -93,10 +93,10 @@ def _get_standalone_pbar(env, max_width, fd):
 def _standalone_pbar_process(env, pbar, period_s):
     interval = 1
     while True:
-        seq, now, t_stop, timescale = env.get_progress()
+        sim_index, now, t_stop, timescale = env.get_progress()
         if t_stop and pbar.max_value != t_stop:
             pbar.max_value = t_stop
-            pbar.widgets = _get_progressbar_widgets(seq, timescale,
+            pbar.widgets = _get_progressbar_widgets(sim_index, timescale,
                                                     know_stop_time=True)
         pbar.update(now)
         t0 = timeit.default_timer()
@@ -105,11 +105,11 @@ def _standalone_pbar_process(env, pbar, period_s):
         interval *= period_s / (t1 - t0)
 
 
-def _get_progressbar_widgets(seq, timescale, know_stop_time):
+def _get_progressbar_widgets(sim_index, timescale, know_stop_time):
     widgets = []
 
-    if seq is not None:
-        widgets.append('Seq {:3}|'.format(seq))
+    if sim_index is not None:
+        widgets.append('Sim {:3}|'.format(sim_index))
 
     magnitude, units = timescale
     if magnitude == 1:
@@ -140,7 +140,8 @@ def get_multi_progress_manager(progress_queue):
             try:
                 yield None
             finally:
-                progress_queue.put((env.seq, env.now, env.now, env.timescale))
+                progress_queue.put((env.sim_index, env.now, env.now,
+                                    env.timescale))
         else:
             yield None
 
@@ -191,12 +192,12 @@ def _consume_multi_display_simple(progress_queue, num_workers, num_simulations,
         _print_simple(len(completed), num_simulations, timedelta(), end, fd)
         last_print_date = start_date
         while len(completed) < num_simulations:
-            seq, now, t_stop, timescale = progress_queue.get()
+            sim_index, now, t_stop, timescale = progress_queue.get()
             now_date = datetime.now()
             td = now_date - start_date
             td_print = now_date - last_print_date
             if now == t_stop:
-                completed.add(seq)
+                completed.add(sim_index)
                 _print_simple(len(completed), num_simulations, td, end, fd)
                 last_print_date = now_date
             elif isatty and td_print.total_seconds() >= 1:
@@ -223,9 +224,9 @@ def _consume_multi_display_single_pbar(progress_queue, num_workers,
     try:
         completed = set()
         while len(completed) < num_simulations:
-            seq, now, t_stop, timescale = progress_queue.get()
+            sim_index, now, t_stop, timescale = progress_queue.get()
             if now == t_stop:
-                completed.add(seq)
+                completed.add(sim_index)
                 overall_pbar.update(len(completed))
     finally:
         overall_pbar.finish()
@@ -250,33 +251,33 @@ def _consume_multi_display_multi_pbar(progress_queue, num_workers,
         worker_progress = OrderedDict()
         completed = set()
         while len(completed) < num_simulations:
-            seq, now, t_stop, timescale = progress_queue.get()
+            sim_index, now, t_stop, timescale = progress_queue.get()
 
             if now == t_stop:
-                completed.add(seq)
+                completed.add(sim_index)
 
             if worker_progress:
                 print(ansi_up(len(worker_progress)), end='', file=fd)
 
-            if seq in worker_progress:
-                for pseq, pbar in worker_progress.items():
-                    if seq == pseq and pbar:
+            if sim_index in worker_progress:
+                for pindex, pbar in worker_progress.items():
+                    if sim_index == pindex and pbar:
                         if now == t_stop:
                             pbar.finish()
-                            worker_progress[seq] = None
+                            worker_progress[sim_index] = None
                         else:
                             if t_stop and pbar.max_value != t_stop:
                                 pbar.max_value = t_stop
                                 pbar.widgets = _get_progressbar_widgets(
-                                    seq, timescale, know_stop_time=True)
+                                    sim_index, timescale, know_stop_time=True)
                             pbar.update(now)
                             print(file=fd)
                     else:
                         print(file=fd)
             else:
-                for pseq, pbar in worker_progress.items():
+                for pindex, pbar in worker_progress.items():
                     if pbar is None:
-                        worker_progress.pop(pseq)
+                        worker_progress.pop(pindex)
                         break
                 print('\n' * len(worker_progress), file=fd)
                 pbar = progressbar.ProgressBar(
@@ -286,8 +287,9 @@ def _consume_multi_display_multi_pbar(progress_queue, num_workers,
                     max_value=(progressbar.UnknownLength
                                if t_stop is None else t_stop),
                     widgets=_get_progressbar_widgets(
-                        seq, timescale, know_stop_time=t_stop is not None))
-                worker_progress[seq] = pbar
+                        sim_index, timescale,
+                        know_stop_time=t_stop is not None))
+                worker_progress[sim_index] = pbar
 
             print(ansi_bold, end='', file=fd)
             overall_pbar.update(len(completed))

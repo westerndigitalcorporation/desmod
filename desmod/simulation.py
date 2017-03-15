@@ -70,10 +70,9 @@ class SimEnvironment(simpy.Environment):
         #: configured "sim.duration", but may be overridden by subclasses.
         self.until = self.duration
 
-        #: From 'sim.seq', the simulation's sequence number when running
-        #: multiple related simulations or `None` when running a single
-        #: simulation.
-        self.seq = config.get('sim.seq')
+        #: From 'meta.sim.index', the simulation's index when running multiple
+        #: related simulations or `None` for a standalone simulation.
+        self.sim_index = config.get('meta.sim.index')
 
         #: :class:`TraceManager` instance.
         self.tracemgr = TraceManager(self)
@@ -96,7 +95,7 @@ class SimEnvironment(simpy.Environment):
             t_stop = self.until.t_stop
         else:
             t_stop = self.until
-        return self.seq, self.now, t_stop, self.timescale
+        return self.sim_index, self.now, t_stop, self.timescale
 
 
 class SimStopEvent(simpy.Event):
@@ -222,11 +221,11 @@ def simulate_factors(base_config, factors, top_type,
     :returns: Sequence of result dictionaries for each simulation.
 
     """
-    configs = list(factorial_config(base_config, factors, 'sim.special'))
+    configs = list(factorial_config(base_config, factors, 'meta.sim.special'))
     base_workspace = base_config.setdefault('sim.workspace', os.curdir)
     overwrite = base_config.setdefault('sim.workspace.overwrite', False)
-    for seq, config in enumerate(configs):
-        config['sim.workspace'] = os.path.join(base_workspace, str(seq))
+    for index, config in enumerate(configs):
+        config['sim.workspace'] = os.path.join(base_workspace, str(index))
     if (overwrite and
             os.path.relpath(base_workspace) != os.curdir and
             os.path.isdir(base_workspace)):
@@ -259,8 +258,8 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
     result_queue = Queue()
     config_queue = Queue()
 
-    for seq, config in enumerate(configs):
-        config['sim.seq'] = seq
+    for index, config in enumerate(configs):
+        config['meta.sim.index'] = index
         config['sim.progress.enable'] = progress_enable
         config_queue.put(config)
 
@@ -293,7 +292,7 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
         # progress_thread is still using it.
         progress_thread.join(1)
 
-    return sorted(results, key=lambda r: r['config']['sim.seq'])
+    return sorted(results, key=lambda r: r['config']['meta.sim.index'])
 
 
 def _simulate_worker(top_type, env_type, reraise, progress_queue, config_queue,
