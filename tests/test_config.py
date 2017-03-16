@@ -36,16 +36,20 @@ def test_named_reuse(named_mgr):
 
 
 def test_named_resolve(named_mgr):
-    named_mgr.name('www', cfg={'w': 0})
-    named_mgr.name('xxx', [], {'x': 1})
+    named_mgr.name('www', config={'w': 0})
+    named_mgr.name('xxx', [], {'x': 1}, category='thing', doc='documentation')
     named_mgr.name('yyy', ['xxx', 'www'], {'y': 2})
-    named_mgr.name('zzz', deps=['yyy'], cfg={'z': 3})
+    named_mgr.name('zzz', depend=['yyy'], config={'z': 3})
     named_mgr.name('qqq', ['zzz'])
     assert named_mgr.resolve('qqq') == {'w': 0, 'x': 1, 'y': 2, 'z': 3}
 
-    assert set(name for name, _, _ in named_mgr.iter()) == {'www', 'xxx',
-                                                            'yyy', 'zzz',
-                                                            'qqq'}
+    assert set(nc.name for nc in named_mgr) == {'www', 'xxx', 'yyy', 'zzz',
+                                                'qqq'}
+    for nc in named_mgr:
+        if nc.name == 'xxx':
+            assert nc.category == 'thing' and nc.doc == 'documentation'
+        else:
+            assert not nc.category and not nc.doc
 
 
 @pytest.mark.parametrize('fuzzy_key, expected', [
