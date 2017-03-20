@@ -1,6 +1,13 @@
 Changlog
 ========
 
+desmod-0.4.0 (2017-03-20)
+-------------------------
+* [CHANGE] meta.sim.index and meta.sim.special
+* [CHANGE] Add meta.sim.workspace
+* [FIX] Check simulate_many() jobs
+* [CHANGE] Add named configuration categories and doc strings
+
 desmod-0.3.3 (2017-02-28)
 -------------------------
 * [CHANGE] Make NamedManager.name() deps argument optional
