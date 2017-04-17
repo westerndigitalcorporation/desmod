@@ -1,0 +1,8 @@
+strict digraph M {
+    "Top" [shape=box,style="rounded,filled",fillcolor="/blues5/1",label=<<b>Top</b><br align="left"/>>];
+    "station0" [shape=box,style="rounded,filled",fillcolor="/blues5/2",label=<<b>station0..station2</b><br align="left"/>>];
+    "tankerco" [shape=box,style="rounded,filled",fillcolor="/blues5/2",label=<<b>tankerco</b><br align="left"/>>];
+    "tankerco.truck0" [shape=box,style="rounded,filled",fillcolor="/blues5/3",label=<<b>truck0..truck1</b><br align="left"/>>];
+
+    "station0" -> "tankerco" [];
+}

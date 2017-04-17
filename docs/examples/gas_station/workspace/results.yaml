@@ -6,19 +6,39 @@ config:
   gas_station.count: 3
   gas_station.pump_rate: 2
   gas_station.pumps: 2
+  meta.sim.workspace: workspace
+  sim.config.file: null
+  sim.db.enable: false
+  sim.db.persist: true
+  sim.dot.all.file: all.dot
+  sim.dot.colorscheme: blues5
+  sim.dot.conn.file: conn.dot
+  sim.dot.enable: true
+  sim.dot.hier.file: hier.dot
   sim.duration: 500 s
+  sim.log.buffering: -1
   sim.log.enable: true
+  sim.log.exclude_pat: []
   sim.log.file: sim.log
   sim.log.format: '{level:7} {ts:.3f} {ts_unit}: {scope:<16}:'
+  sim.log.include_pat: [.*]
   sim.log.level: INFO
+  sim.log.persist: true
+  sim.progress.enable: false
+  sim.progress.max_width: null
+  sim.progress.update_period: 1 s
   sim.result.file: results.yaml
   sim.seed: 42
   sim.timescale: s
-  sim.workspace: .
+  sim.vcd.enable: false
+  sim.vcd.persist: true
+  sim.workspace: workspace
+  sim.workspace.overwrite: false
   tanker.capacity: 200
   tanker.count: 2
   tanker.pump_rate: 10
   tanker.travel_time: 100
 sim.exception: null
-sim.runtime: 0.03544525199686177
+sim.now: 500.0
+sim.runtime: 0.027634931000648066
 sim.time: 500

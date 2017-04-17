@@ -18,6 +18,7 @@ from __future__ import division
 from itertools import count, cycle
 
 from desmod.component import Component
+from desmod.dot import generate_dot
 from desmod.queue import Queue
 from desmod.simulation import simulate
 from simpy import Container, Resource
@@ -55,6 +56,9 @@ class Top(Component):
             # the tanker_company instance. This demonstrates the most
             # abbreviated way to call connect().
             self.connect(gas_station, 'tanker_company')
+
+    def elab_hook(self):
+        generate_dot(self)
 
 
 class TankerCompany(Component):
@@ -249,6 +253,8 @@ config = {
     'gas_station.pump_rate': 2,
     'gas_station.pumps': 2,
     'gas_station.arrival_interval': 60,
+    'sim.dot.enable': True,
+    'sim.dot.colorscheme': 'blues5',
     'sim.duration': '500 s',
     'sim.log.enable': True,
     'sim.log.file': 'sim.log',

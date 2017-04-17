@@ -1,0 +1,25 @@
+strict digraph M {
+    subgraph "cluster_Top" {
+        label=<<b>Top</b>>
+        style="filled"
+        fillcolor="/blues5/1"
+        "Top" [shape=box,style="dotted,filled",fillcolor="/blues5/1",label=<<b>Top</b><br align="left"/>>];
+        "station0" [shape=box,style="rounded,filled",fillcolor="/blues5/2",label=<
+            <b>station0..station2</b><br align="left"/>
+            <br/>
+            <i>_monitor_reservoir</i><br align="left"/>
+            <i>_traffic_generator</i><br align="left"/>>];
+        subgraph "cluster_tankerco" {
+            label=<<b>tankerco</b>>
+            style="filled"
+            fillcolor="/blues5/2"
+            "tankerco" [shape=box,style="dotted,filled",fillcolor="/blues5/2",label=<<b>tankerco</b><br align="left"/>>];
+            "tankerco.truck0" [shape=box,style="rounded,filled",fillcolor="/blues5/3",label=<
+                <b>truck0..truck1</b><br align="left"/>
+                <br/>
+                <i>_dispatch_loop</i><br align="left"/>>];
+        }
+    }
+
+    "station0" -> "tankerco" [];
+}
