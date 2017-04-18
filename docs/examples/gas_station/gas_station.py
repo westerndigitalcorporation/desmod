@@ -257,7 +257,7 @@ config = {
     'sim.result.file': 'results.yaml',
     'sim.seed': 42,
     'sim.timescale': 's',
-    'sim.workspace': '.',
+    'sim.workspace': 'workspace',
     'tanker.capacity': 200,
     'tanker.count': 2,
     'tanker.pump_rate': 10,
