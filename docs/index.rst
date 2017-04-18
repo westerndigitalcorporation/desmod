@@ -1,16 +1,16 @@
 Welcome to desmod
 =================
 
-.. include:: ../README.rst
-
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    api/index
    examples/index
    history
+
+.. include:: ../README.rst
 
 
 Indices and tables
