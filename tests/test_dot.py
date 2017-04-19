@@ -88,7 +88,7 @@ def test_generate_dot(top, key):
     assert key not in top.env.config
     generate_dot(top)
     assert key in top.env.config
-    files = os.listdir()
+    files = os.listdir(os.curdir)
     for key in top.env.config:
         if key.startswith('sim.dot.') and key.endswith('.file'):
             assert top.env.config[key] not in files
@@ -103,4 +103,4 @@ def test_generate_dot_file_enables(top, key):
     top.env.config['sim.dot.enable'] = True
     top.env.config[key] = ''
     generate_dot(top)
-    assert all(name.endswith('.dot') for name in os.listdir())
+    assert all(name.endswith('.dot') for name in os.listdir(os.curdir))
