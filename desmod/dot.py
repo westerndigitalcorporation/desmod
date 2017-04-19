@@ -25,7 +25,7 @@ can produce a more compact layout::
 .. _DOT language: http://graphviz.org/content/dot-language
 
 """
-from itertools import cycle
+from itertools import cycle, groupby
 
 from desmod.component import Component
 
@@ -182,12 +182,9 @@ def _comp_connections(component):
 
 
 def _child_type_groups(component):
-    child_type_groups = []
-    child_types = {type(child) for child in component._children}
-    for child_type in child_types:
-        child_type_groups.append([child for child in component._children
-                                  if type(child) is child_type])
-    return child_type_groups
+    children = sorted(component._children, key=_comp_name)
+    for _, group in groupby(children, lambda child: str(type(child))):
+        yield list(group)
 
 
 def _comp_name(component):
