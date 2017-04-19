@@ -40,6 +40,66 @@ _color_cycle = cycle([
 ])
 
 
+def generate_dot(top, config=None):
+    """Generate dot files based on 'sim.dot' configuration.
+
+    The ``sim.dot.enable`` configuration controls whether any dot file
+    generation is performed. The remaining ``sim.dot`` configuration items have
+    no effect unless ``sim.dot.enable`` is ``True``.
+
+    The ``sim.dot.colorscheme`` configuration controls the colorscheme used in
+    the generated DOT files. See :func:`component_to_dot` for more detail.
+
+    The ``sim.dot.all.file``, ``sim.dot.hier.file``, and ``sim.dot.conn.file``
+    configuration items control the names of the generated DOT files. These
+    items can also be set to the empty string to disable generating a
+    particular file.
+
+    The nominal way to use this function is to call it from the top component's
+    :meth:`Component.elab_hook()`. E.g.::
+
+        def elab_hook(self):
+            ...
+            generate_dot(self)
+            ...
+
+    """
+    config = top.env.config if config is None else config
+
+    enable = config.setdefault('sim.dot.enable', False)
+    colorscheme = config.setdefault('sim.dot.colorscheme', '')
+    all_filename = config.setdefault('sim.dot.all.file', 'all.dot')
+    hier_filename = config.setdefault('sim.dot.hier.file', 'hier.dot')
+    conn_filename = config.setdefault('sim.dot.conn.file', 'conn.dot')
+
+    if not enable:
+        return
+
+    if all_filename:
+        with open(all_filename, 'w') as dot_file:
+            dot_file.write(component_to_dot(top,
+                                            show_hierarchy=True,
+                                            show_connections=True,
+                                            show_processes=True,
+                                            colorscheme=colorscheme))
+
+    if hier_filename:
+        with open(hier_filename, 'w') as dot_file:
+            dot_file.write(component_to_dot(top,
+                                            show_hierarchy=True,
+                                            show_connections=False,
+                                            show_processes=False,
+                                            colorscheme=colorscheme))
+
+    if conn_filename:
+        with open(conn_filename, 'w') as dot_file:
+            dot_file.write(component_to_dot(top,
+                                            show_hierarchy=False,
+                                            show_connections=True,
+                                            show_processes=False,
+                                            colorscheme=colorscheme))
+
+
 def component_to_dot(top,
                      show_hierarchy=True,
                      show_connections=True,
