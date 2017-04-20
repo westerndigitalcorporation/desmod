@@ -183,6 +183,7 @@ def simulate(config, top_type, env_type=SimEnvironment, reraise=True,
                 except BaseException as e:
                     env.tracemgr.trace_exception()
                     result['sim.exception'] = repr(e)
+                    top.post_fail()
                     raise
                 else:
                     result['sim.exception'] = None
