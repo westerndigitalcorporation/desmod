@@ -22,7 +22,6 @@ from desmod.progress import (standalone_progress_manager,
 from desmod.timescale import parse_time, scale_time
 from desmod.tracer import TraceManager
 
-
 class SimEnvironment(simpy.Environment):
     """Simulation Environment.
 
@@ -205,7 +204,7 @@ def simulate(config, top_type, env_type=SimEnvironment, reraise=True,
 
 
 def simulate_factors(base_config, factors, top_type,
-                     env_type=SimEnvironment, jobs=None):
+                     env_type=SimEnvironment, jobs=None, only_factor=None):
     """Run multi-factor simulations in separate processes.
 
     The `factors` are used to compose specialized config dictionaries for the
@@ -220,13 +219,22 @@ def simulate_factors(base_config, factors, top_type,
     :param top_type: The model's top-level Component subclass.
     :param env_type: :class:`SimEnvironment` subclass.
     :param int jobs: User specified number of concurent processes.
+    :param int only_factor: User specified factor index to simulate.
     :returns: Sequence of result dictionaries for each simulation.
 
     """
-    configs = list(factorial_config(base_config, factors, 'meta.sim.special'))
+    configs = list(factorial_config(
+        base_config, factors, 'meta.sim.special', only_factor))
+    if only_factor is not None:
+        if len(configs) == 0:
+            raise ValueError('No factor at index {}'.format(only_factor))
+        assert len(configs) == 1, 'exactly one config expected when ' \
+                '--only_factor is used'
     ws = base_config.setdefault('sim.workspace', os.curdir)
     overwrite = base_config.setdefault('sim.workspace.overwrite', False)
+
     for index, config in enumerate(configs):
+        index = index if only_factor is None else only_factor
         config['meta.sim.index'] = index
         config['meta.sim.workspace'] = os.path.join(ws, str(index))
     if overwrite and os.path.relpath(ws) != os.curdir and os.path.isdir(ws):
