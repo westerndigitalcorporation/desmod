@@ -15,7 +15,10 @@ def attach(scope, target, callbacks, **hints):
     elif isinstance(target, simpy.Store):
         _attach_store_items(target, callbacks)
     elif isinstance(target, simpy.Resource):
-        _attach_resource_users(target, callbacks)
+        if hints.get('trace_queue'):
+            _attach_resource_queue(target, callbacks)
+        else:
+            _attach_resource_users(target, callbacks)
     elif isinstance(target, Queue):
         if hints.get('trace_remaining', False):
             _attach_queue_remaining(target, callbacks)
@@ -111,6 +114,27 @@ def _attach_resource_users(resource, callbacks):
 
         resource._do_get = make_wrapper(resource._do_get)
         resource._do_put = make_wrapper(resource._do_put)
+
+
+def _attach_resource_queue(resource, callbacks):
+    if callbacks:
+        def make_wrapper(func):
+            @six.wraps(func)
+            def wrapper(*args, **kwargs):
+                old_queue = len(resource.queue)
+                ret = func(*args, **kwargs)
+                new_queue = len(resource.queue)
+                if new_queue != old_queue:
+                    try:
+                        for callback in callbacks:
+                            callback(new_queue)
+                    except vcd.VCDPhaseError:
+                        pass
+                return ret
+            return wrapper
+
+        resource.request = make_wrapper(resource.request)
+        resource._trigger_put = make_wrapper(resource._trigger_put)
 
 
 def _attach_queue_size(queue, callbacks):
