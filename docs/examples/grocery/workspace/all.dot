@@ -1,0 +1,36 @@
+strict digraph M {
+    subgraph "cluster_Top" {
+        label=<<b>Top</b>>
+        style="filled"
+        fillcolor="/blues5/1"
+        "Top" [shape=box,style="dotted,filled",fillcolor="/blues5/1",label=<<b>Top</b><br align="left"/>>];
+        "customers" [shape=box,style="rounded,filled",fillcolor="/blues5/2",label=<
+            <b>customers</b><br align="left"/>
+            <br/>
+            <i>generate_customers</i><br align="left"/>>];
+        subgraph "cluster_grocery" {
+            label=<<b>grocery</b>>
+            style="filled"
+            fillcolor="/blues5/2"
+            "grocery" [shape=box,style="dotted,filled",fillcolor="/blues5/2",label=<<b>grocery</b><br align="left"/>>];
+            "grocery.bagger0" [shape=box,style="rounded,filled",fillcolor="/blues5/3",label=<
+                <b>bagger0</b><br align="left"/>
+                <br/>
+                <i>policy_float_aggressive</i><br align="left"/>>];
+            subgraph "cluster_grocery.lane0" {
+                label=<<b>lane0..lane1</b>>
+                style="filled"
+                fillcolor="/blues5/3"
+                "grocery.lane0" [shape=box,style="dotted,filled",fillcolor="/blues5/3",label=<<b>lane0..lane1</b><br align="left"/>>];
+                "grocery.lane0.cashier" [shape=box,style="rounded,filled",fillcolor="/blues5/4",label=<
+                    <b>cashier</b><br align="left"/>
+                    <br/>
+                    <i>checkout</i><br align="left"/>>];
+            }
+        }
+    }
+
+    "customers" -> "grocery" [];
+    "grocery.bagger0" -> "grocery.lane0" [];
+    "grocery.lane0.cashier" -> "grocery.lane0" [];
+}

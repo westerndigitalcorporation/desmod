@@ -1,0 +1,20 @@
+strict digraph M {
+    subgraph "cluster_Top" {
+        label=<<b>Top</b>>
+        style="filled"
+        fillcolor="/blues5/1"
+        "customers" [shape=box,style="rounded,filled",fillcolor="/blues5/2",label=<<b>customers</b><br align="left"/>>];
+        subgraph "cluster_grocery" {
+            label=<<b>grocery</b>>
+            style="filled"
+            fillcolor="/blues5/2"
+            "grocery.bagger0" [shape=box,style="rounded,filled",fillcolor="/blues5/3",label=<<b>bagger0</b><br align="left"/>>];
+            subgraph "cluster_grocery.lane0" {
+                label=<<b>lane0..lane1</b>>
+                style="filled"
+                fillcolor="/blues5/3"
+                "grocery.lane0.cashier" [shape=box,style="rounded,filled",fillcolor="/blues5/4",label=<<b>cashier</b><br align="left"/>>];
+            }
+        }
+    }
+}
