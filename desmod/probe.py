@@ -2,14 +2,13 @@ import types
 
 import simpy
 import six
-import vcd
 
 from desmod.queue import Queue
 
 
 def attach(scope, target, callbacks, **hints):
     if isinstance(target, types.MethodType):
-        _attach_component_method(target, callbacks)
+        _attach_method(target, callbacks)
     elif isinstance(target, simpy.Container):
         _attach_container_level(target, callbacks)
     elif isinstance(target, simpy.Store):
@@ -29,131 +28,99 @@ def attach(scope, target, callbacks, **hints):
             'Cannot probe {} of type {}'.format(scope, type(target)))
 
 
-def _detach_methods(target, method_names):
-    for method_name in method_names:
-        if six.get_function_closure(getattr(target, method_name)):
-            orig_method = six.create_bound_method(
-                getattr(type(target), method_name), target)
-            setattr(target, method_name, orig_method)
+def _attach_method(method, callbacks):
+    def make_wrapper(func):
+        @six.wraps(func)
+        def wrapper(*args, **kwargs):
+            value = func(*args, **kwargs)
+            for callback in callbacks:
+                callback(value)
+            return value
+        return wrapper
 
-
-def _attach_component_method(method, callbacks):
-    component = six.get_method_self(method)
-    _detach_methods(component, [method.__func__.__name__])
-
-    if callbacks:
-        def make_wrapper(func):
-            @six.wraps(func)
-            def wrapper(*args, **kwargs):
-                value = func(*args, **kwargs)
-                for callback in callbacks:
-                    callback(value)
-                return value
-            return wrapper
-
-        setattr(component, method.__func__.__name__, make_wrapper(method))
+    setattr(six.get_method_self(method), method.__func__.__name__,
+            make_wrapper(method))
 
 
 def _attach_container_level(container, callbacks):
-    _detach_methods(container, ['_do_get', '_do_put'])
+    def make_wrapper(func):
+        @six.wraps(func)
+        def wrapper(*args, **kwargs):
+            old_level = container._level
+            ret = func(*args, **kwargs)
+            new_level = container._level
+            if new_level != old_level:
+                for callback in callbacks:
+                    callback(new_level)
+            return ret
+        return wrapper
 
-    if callbacks:
-        def make_wrapper(func):
-            @six.wraps(func)
-            def wrapper(*args, **kwargs):
-                old_level = container._level
-                ret = func(*args, **kwargs)
-                new_level = container._level
-                if new_level != old_level:
-                    for callback in callbacks:
-                        callback(new_level)
-                return ret
-            return wrapper
-
-        container._do_get = make_wrapper(container._do_get)
-        container._do_put = make_wrapper(container._do_put)
+    container._do_get = make_wrapper(container._do_get)
+    container._do_put = make_wrapper(container._do_put)
 
 
 def _attach_store_items(store, callbacks):
-    _detach_methods(store, ['_do_get', '_do_put'])
-    if callbacks:
-        def make_wrapper(func):
-            @six.wraps(func)
-            def wrapper(*args, **kwargs):
-                old_items = len(store.items)
-                ret = func(*args, **kwargs)
-                new_items = len(store.items)
-                if new_items != old_items:
-                    for callback in callbacks:
-                        callback(new_items)
-                return ret
-            return wrapper
+    def make_wrapper(func):
+        @six.wraps(func)
+        def wrapper(*args, **kwargs):
+            old_items = len(store.items)
+            ret = func(*args, **kwargs)
+            new_items = len(store.items)
+            if new_items != old_items:
+                for callback in callbacks:
+                    callback(new_items)
+            return ret
+        return wrapper
 
-        store._do_get = make_wrapper(store._do_get)
-        store._do_put = make_wrapper(store._do_put)
+    store._do_get = make_wrapper(store._do_get)
+    store._do_put = make_wrapper(store._do_put)
 
 
 def _attach_resource_users(resource, callbacks):
-    _detach_methods(resource, ['_do_get', '_do_put'])
-    if callbacks:
-        def make_wrapper(func):
-            @six.wraps(func)
-            def wrapper(*args, **kwargs):
-                old_users = len(resource.users)
-                ret = func(*args, **kwargs)
-                new_users = len(resource.users)
-                if new_users != old_users:
-                    value = new_users if new_users else 'z'
-                    try:
-                        for callback in callbacks:
-                            callback(value)
-                    except vcd.VCDPhaseError:
-                        pass
-                return ret
-            return wrapper
+    def make_wrapper(func):
+        @six.wraps(func)
+        def wrapper(*args, **kwargs):
+            old_users = len(resource.users)
+            ret = func(*args, **kwargs)
+            new_users = len(resource.users)
+            if new_users != old_users:
+                for callback in callbacks:
+                    callback(new_users)
+            return ret
+        return wrapper
 
-        resource._do_get = make_wrapper(resource._do_get)
-        resource._do_put = make_wrapper(resource._do_put)
+    resource._do_get = make_wrapper(resource._do_get)
+    resource._do_put = make_wrapper(resource._do_put)
 
 
 def _attach_resource_queue(resource, callbacks):
-    if callbacks:
-        def make_wrapper(func):
-            @six.wraps(func)
-            def wrapper(*args, **kwargs):
-                old_queue = len(resource.queue)
-                ret = func(*args, **kwargs)
-                new_queue = len(resource.queue)
-                if new_queue != old_queue:
-                    try:
-                        for callback in callbacks:
-                            callback(new_queue)
-                    except vcd.VCDPhaseError:
-                        pass
-                return ret
-            return wrapper
+    def make_wrapper(func):
+        @six.wraps(func)
+        def wrapper(*args, **kwargs):
+            old_queue = len(resource.queue)
+            ret = func(*args, **kwargs)
+            new_queue = len(resource.queue)
+            if new_queue != old_queue:
+                for callback in callbacks:
+                    callback(new_queue)
+            return ret
+        return wrapper
 
-        resource.request = make_wrapper(resource.request)
-        resource._trigger_put = make_wrapper(resource._trigger_put)
+    resource.request = make_wrapper(resource.request)
+    resource._trigger_put = make_wrapper(resource._trigger_put)
 
 
 def _attach_queue_size(queue, callbacks):
-    if callbacks:
-        def hook():
-            for callback in callbacks:
-                callback(queue.size)
+    def hook():
+        for callback in callbacks:
+            callback(queue.size)
 
-        queue._put_hook = queue._get_hook = hook
-    else:
-        queue._put_hook = queue._get_hook = None
+    queue._put_hook = queue._get_hook = hook
 
 
 def _attach_queue_remaining(queue, callbacks):
-    if callbacks:
-        def hook():
-            for callback in callbacks:
-                callback(queue.remaining)
+    def hook():
+        for callback in callbacks:
+            callback(queue.remaining)
 
-        queue._put_hook = queue._get_hook = hook
-    else:
-        queue._put_hook = queue._get_hook = None
+    queue._put_hook = queue._get_hook = hook
