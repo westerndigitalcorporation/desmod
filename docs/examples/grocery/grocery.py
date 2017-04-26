@@ -356,7 +356,7 @@ class Customers(Component):
             for i in range(num_items - 1):
                 yield lane.feed_belt.put((i, None))
             checkout_done = self.env.event()
-            yield lane.feed_belt.put((num_items-1, checkout_done))
+            yield lane.feed_belt.put((num_items - 1, checkout_done))
 
         yield checkout_done
         checkout_time = self.env.now - t0
