@@ -1,6 +1,19 @@
 Changelog
 =========
 
+desmod-0.5.0 (2017-04-27)
+-------------------------
+* [NEW] Add desmod.dot.generate_dot()
+* [NEW] Add "persist" option for tracers
+* [NEW] Add SQLiteTracer
+* [NEW] Add grocery store example
+* [NEW] Support probing a Resource's queue
+* [FIX] Stable sort order in DOT generation
+* [CHANGE] Rearrange doc index page
+* [CHANGE] Change examples hierarchy
+* [CHANGE] Add DOT to Gas Station example
+* [CHANGE] Tests and cleanup for desmod.probe
+
 desmod-0.4.0 (2017-03-20)
 -------------------------
 * [CHANGE] meta.sim.index and meta.sim.special
