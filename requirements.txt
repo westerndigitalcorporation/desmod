@@ -1,3 +1,5 @@
+boto3 >= 1.4.2
+futures >= 3.1.1; python_version < '3.0'
 pyvcd >= 0.1.1
 PyYAML >= 3.11
 simpy >= 3.0.8

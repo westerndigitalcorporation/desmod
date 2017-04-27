@@ -21,6 +21,8 @@ from desmod.progress import (standalone_progress_manager,
                              consume_multi_progress)
 from desmod.timescale import parse_time, scale_time
 from desmod.tracer import TraceManager
+from desmod.workspacesync.s3 import S3Sync
+
 
 class SimEnvironment(simpy.Environment):
     """Simulation Environment.
@@ -123,11 +125,12 @@ class SimStopEvent(simpy.Event):
 class _Workspace(object):
     """Context manager for workspace directory management."""
     def __init__(self, config):
+        self.config = config
         self.workspace = config.setdefault('meta.sim.workspace',
                                            config.setdefault('sim.workspace',
                                                              os.curdir))
         self.overwrite = config.setdefault('sim.workspace.overwrite', False)
-        self.prev_dir = os.getcwd()
+        self.orig_dir = os.getcwd()
 
     def __enter__(self):
         if os.path.relpath(self.workspace) != os.curdir:
@@ -139,7 +142,20 @@ class _Workspace(object):
             os.chdir(self.workspace)
 
     def __exit__(self, *exc):
-        os.chdir(self.prev_dir)
+        os.chdir(self.orig_dir)
+        try:
+            os.chdir(self.config['sim.workspace'])
+            self.sync()
+        finally:
+            os.chdir(self.orig_dir)
+
+    def sync(self):
+        if self.config['sim.workspace.s3_sync']:
+            artifacts = []
+            for root, _, files in os.walk(os.curdir, topdown=False):
+                for filename in files:
+                    artifacts.append(os.path.join(root, filename))
+            S3Sync(self.config, artifacts).sync()
 
 
 def simulate(config, top_type, env_type=SimEnvironment, reraise=True,
@@ -229,7 +245,7 @@ def simulate_factors(base_config, factors, top_type,
         if len(configs) == 0:
             raise ValueError('No factor at index {}'.format(only_factor))
         assert len(configs) == 1, 'exactly one config expected when ' \
-                '--only_factor is used'
+            '--only_factor is used'
     ws = base_config.setdefault('sim.workspace', os.curdir)
     overwrite = base_config.setdefault('sim.workspace.overwrite', False)
 
