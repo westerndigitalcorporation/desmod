@@ -196,6 +196,7 @@ def test_simulate_factors(config):
             os.path.join(result['config']['meta.sim.workspace'],
                          result['config']['sim.result.file']))
 
+
 def test_simulate_factors_only_factor(config):
     FACTOR_NUM = 2
     factors = [(['sim.seed'], [[1], [2], [3]])]
@@ -209,6 +210,7 @@ def test_simulate_factors_only_factor(config):
         assert os.path.exists(
             os.path.join(result['config']['meta.sim.workspace'],
                          result['config']['sim.result.file']))
+
 
 def test_simulate_factors_progress(config, capfd):
     config['sim.progress.enable'] = True

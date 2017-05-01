@@ -28,11 +28,11 @@ class S3Sync(object):
 
     def _upload_artifact(self, artifact):
         dest = os.path.join(
-                self.config['sim.workspace.s3_sync_prefix'],
-                os.path.split(self.workspace)[1],
-                (artifact[2:]))
+            self.config['sim.workspace.s3_sync_prefix'],
+            os.path.split(self.workspace)[1],
+            (artifact[2:]))
         self.client.upload_file(
-                artifact, self.config['sim.workspace.s3_sync_bucket'], dest)
+            artifact, self.config['sim.workspace.s3_sync_bucket'], dest)
 
     def sync(self):
         """Concurrently upload the artifacts to s3."""
@@ -44,9 +44,8 @@ class S3Sync(object):
         with ThreadPoolExecutor(max_workers=self.MAX_THREADS) as executor:
             for artifact in self.artifacts:
                 futures.append(
-                        executor.submit(self._upload_artifact, artifact))
+                    executor.submit(self._upload_artifact, artifact))
         [future.result() for future in futures]
-
 
     @staticmethod
     def init_config_vals(config):
