@@ -1,7 +1,4 @@
-from concurrent.futures import ThreadPoolExecutor
-
-import boto3
-import getpass
+"""Synchronization of workspace artifacts to Amazon S3 cloud storage."""
 import os
 
 
@@ -21,22 +18,27 @@ class S3Sync(object):
     MAX_THREADS = 10
 
     def __init__(self, config, artifacts):
-        self.client = boto3.client('s3')
+        self.client = None
         self.config = config
         self.workspace = config['sim.workspace']
         self.artifacts = artifacts
 
     def _upload_artifact(self, artifact):
         dest = os.path.join(
-            self.config['sim.workspace.s3_sync_prefix'],
+            self.config['sim.sync.s3.prefix'],
             os.path.split(self.workspace)[1],
             (artifact[2:]))
         self.client.upload_file(
-            artifact, self.config['sim.workspace.s3_sync_bucket'], dest)
+            artifact, self.config['sim.sync.s3.bucket'], dest)
 
     def sync(self):
         """Concurrently upload the artifacts to s3."""
-        self.init_config_vals(self.config)
+        from concurrent.futures import ThreadPoolExecutor
+        import boto3
+
+        self.config.setdefault('sim.sync.s3.prefix', '')
+        self.client = boto3.client('s3')
+
         if len(self.artifacts) == 0:
             return
 
@@ -46,13 +48,3 @@ class S3Sync(object):
                 futures.append(
                     executor.submit(self._upload_artifact, artifact))
         [future.result() for future in futures]
-
-    @staticmethod
-    def init_config_vals(config):
-        """Set sane s3 config values if they have not yet been set."""
-        if not config['sim.workspace.s3_sync_prefix']:
-            try:
-                username = getpass.getuser()
-            except:
-                username = "unknown"
-            config['sim.workspace.s3_sync_prefix'] = username

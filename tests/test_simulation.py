@@ -38,7 +38,7 @@ def config():
         'sim.result.file': 'result.yaml',
         'sim.workspace': 'workspace',
         'sim.workspace.overwrite': False,
-        'sim.workspace.s3_sync': False,
+        'sim.sync.s3.enable': False,
         'sim.timescale': '1 us',
         'sim.seed': 1234,
         'sim.duration': '1 us',
@@ -199,9 +199,10 @@ def test_simulate_factors(config):
 
 def test_simulate_factors_only_factor(config):
     FACTOR_NUM = 2
+    cfg_filter_fn = lambda cfg: cfg['meta.sim.index'] == FACTOR_NUM
     factors = [(['sim.seed'], [[1], [2], [3]])]
     results = simulate_factors(
-        config, factors, TopTest, only_factor=FACTOR_NUM)
+        config, factors, TopTest, config_filter=cfg_filter_fn)
     assert len(results) == 1
     for result in results:
         assert result['sim.exception'] is None

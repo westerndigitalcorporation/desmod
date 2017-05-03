@@ -37,7 +37,7 @@ def config():
         'sim.vcd.start_time': '',
         'sim.vcd.stop_time': '',
         'sim.workspace': 'workspace',
-        'sim.workspace.s3_sync': False,
+        'sim.sync.s3.enable': False,
         'test.raise': False,
     }
 

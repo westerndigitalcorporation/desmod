@@ -5,6 +5,12 @@ from contextlib import closing
 from multiprocessing import cpu_count, Process, Queue
 from pprint import pprint
 from threading import Thread
+try:
+    from future_builtins import filter
+except ImportError:
+    # Assume Python 3, which already has filter built in
+    pass
+
 import json
 import os
 import random
@@ -150,7 +156,7 @@ class _Workspace(object):
             os.chdir(self.orig_dir)
 
     def sync(self):
-        if self.config['sim.workspace.s3_sync']:
+        if self.config.setdefault('sim.sync.s3.enable', False):
             artifacts = []
             for root, _, files in os.walk(os.curdir, topdown=False):
                 for filename in files:
@@ -220,7 +226,7 @@ def simulate(config, top_type, env_type=SimEnvironment, reraise=True,
 
 
 def simulate_factors(base_config, factors, top_type,
-                     env_type=SimEnvironment, jobs=None, only_factor=None):
+                     env_type=SimEnvironment, jobs=None, config_filter=None):
     """Run multi-factor simulations in separate processes.
 
     The `factors` are used to compose specialized config dictionaries for the
@@ -235,24 +241,20 @@ def simulate_factors(base_config, factors, top_type,
     :param top_type: The model's top-level Component subclass.
     :param env_type: :class:`SimEnvironment` subclass.
     :param int jobs: User specified number of concurent processes.
-    :param int only_factor: User specified factor index to simulate.
+    :param function config_filter:
+        A function which will be passed a config and returns a bool to filter.
     :returns: Sequence of result dictionaries for each simulation.
 
     """
-    configs = list(factorial_config(
-        base_config, factors, 'meta.sim.special', only_factor))
-    if only_factor is not None:
-        if len(configs) == 0:
-            raise ValueError('No factor at index {}'.format(only_factor))
-        assert len(configs) == 1, 'exactly one config expected when ' \
-            '--only_factor is used'
+    configs = list(factorial_config(base_config, factors, 'meta.sim.special'))
     ws = base_config.setdefault('sim.workspace', os.curdir)
     overwrite = base_config.setdefault('sim.workspace.overwrite', False)
 
     for index, config in enumerate(configs):
-        index = index if only_factor is None else only_factor
         config['meta.sim.index'] = index
         config['meta.sim.workspace'] = os.path.join(ws, str(index))
+    if config_filter is not None:
+        configs[:] = filter(config_filter, configs)
     if overwrite and os.path.relpath(ws) != os.curdir and os.path.isdir(ws):
         shutil.rmtree(ws)
     return simulate_many(configs, top_type, env_type, jobs)

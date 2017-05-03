@@ -247,7 +247,7 @@ def parse_user_factor(config, user_keys, user_exprs, eval_locals=None):
     return [[key for key, _ in current], values]
 
 
-def factorial_config(base_config, factors, special_key=None, only_factor=None):
+def factorial_config(base_config, factors, special_key=None):
     """Generate configurations from base config and config factors.
 
     :param dict base_config:
@@ -261,10 +261,6 @@ def factorial_config(base_config, factors, special_key=None, only_factor=None):
         When specified, a key/value will be inserted into the generated
         configuration dicts that identifies the "special" (unique) key/value
         combinations of the specified `factors` used in the config dict.
-    :param int only_factor:
-        When specified, only a single config will be yielded; the config will
-        contain only the single factor at the specified index of the list of
-        the cartesian product of the unrolled factors.
     :yields:
         Configuration dictionaries with the cartesian product of the provided
         `factors` applied. I.e. each yielded config dict will have a unique
@@ -276,19 +272,16 @@ def factorial_config(base_config, factors, special_key=None, only_factor=None):
         unrolled_factors.append([(keys, values) for values in values_list])
 
     for idx, keys_values_lists in enumerate(product(*unrolled_factors)):
-        if only_factor is None or only_factor == idx:
-            config = deepcopy(base_config)
-            special = []
-            if special_key:
-                config[special_key] = special
-            for keys, values in keys_values_lists:
-                for key, value in zip(keys, values):
-                    config[key] = value
-                    if special_key:
-                        special.append([key, value])
-            yield config
-            if only_factor == idx:
-                break
+        config = deepcopy(base_config)
+        special = []
+        if special_key:
+            config[special_key] = special
+        for keys, values in keys_values_lists:
+            for key, value in zip(keys, values):
+                config[key] = value
+                if special_key:
+                    special.append([key, value])
+        yield config
 
 
 def fuzzy_match(keys, fuzzy_key):
