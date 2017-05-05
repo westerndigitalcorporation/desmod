@@ -4,12 +4,8 @@ from __future__ import division
 from contextlib import closing
 from multiprocessing import cpu_count, Process, Queue
 from pprint import pprint
+from six.moves import filter
 from threading import Thread
-try:
-    from future_builtins import filter
-except ImportError:
-    # Assume Python 3, which already has filter built in
-    pass
 
 import json
 import os
@@ -27,7 +23,6 @@ from desmod.progress import (standalone_progress_manager,
                              consume_multi_progress)
 from desmod.timescale import parse_time, scale_time
 from desmod.tracer import TraceManager
-from desmod.workspacesync.s3 import S3Sync
 
 
 class SimEnvironment(simpy.Environment):
@@ -131,12 +126,11 @@ class SimStopEvent(simpy.Event):
 class _Workspace(object):
     """Context manager for workspace directory management."""
     def __init__(self, config):
-        self.config = config
         self.workspace = config.setdefault('meta.sim.workspace',
                                            config.setdefault('sim.workspace',
                                                              os.curdir))
         self.overwrite = config.setdefault('sim.workspace.overwrite', False)
-        self.orig_dir = os.getcwd()
+        self.prev_dir = os.getcwd()
 
     def __enter__(self):
         if os.path.relpath(self.workspace) != os.curdir:
@@ -148,20 +142,7 @@ class _Workspace(object):
             os.chdir(self.workspace)
 
     def __exit__(self, *exc):
-        os.chdir(self.orig_dir)
-        try:
-            os.chdir(self.config['sim.workspace'])
-            self.sync()
-        finally:
-            os.chdir(self.orig_dir)
-
-    def sync(self):
-        if self.config.setdefault('sim.sync.s3.enable', False):
-            artifacts = []
-            for root, _, files in os.walk(os.curdir, topdown=False):
-                for filename in files:
-                    artifacts.append(os.path.join(root, filename))
-            S3Sync(self.config, artifacts).sync()
+        os.chdir(self.prev_dir)
 
 
 def simulate(config, top_type, env_type=SimEnvironment, reraise=True,

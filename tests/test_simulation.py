@@ -38,7 +38,6 @@ def config():
         'sim.result.file': 'result.yaml',
         'sim.workspace': 'workspace',
         'sim.workspace.overwrite': False,
-        'sim.sync.s3.enable': False,
         'sim.timescale': '1 us',
         'sim.seed': 1234,
         'sim.duration': '1 us',

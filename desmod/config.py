@@ -271,7 +271,7 @@ def factorial_config(base_config, factors, special_key=None):
     for keys, values_list in factors:
         unrolled_factors.append([(keys, values) for values in values_list])
 
-    for idx, keys_values_lists in enumerate(product(*unrolled_factors)):
+    for keys_values_lists in product(*unrolled_factors):
         config = deepcopy(base_config)
         special = []
         if special_key:
