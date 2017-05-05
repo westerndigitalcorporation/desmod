@@ -4,7 +4,9 @@ from __future__ import division
 from contextlib import closing
 from multiprocessing import cpu_count, Process, Queue
 from pprint import pprint
+from six.moves import filter
 from threading import Thread
+
 import json
 import os
 import random
@@ -205,7 +207,7 @@ def simulate(config, top_type, env_type=SimEnvironment, reraise=True,
 
 
 def simulate_factors(base_config, factors, top_type,
-                     env_type=SimEnvironment, jobs=None):
+                     env_type=SimEnvironment, jobs=None, config_filter=None):
     """Run multi-factor simulations in separate processes.
 
     The `factors` are used to compose specialized config dictionaries for the
@@ -220,15 +222,20 @@ def simulate_factors(base_config, factors, top_type,
     :param top_type: The model's top-level Component subclass.
     :param env_type: :class:`SimEnvironment` subclass.
     :param int jobs: User specified number of concurent processes.
+    :param function config_filter:
+        A function which will be passed a config and returns a bool to filter.
     :returns: Sequence of result dictionaries for each simulation.
 
     """
     configs = list(factorial_config(base_config, factors, 'meta.sim.special'))
     ws = base_config.setdefault('sim.workspace', os.curdir)
     overwrite = base_config.setdefault('sim.workspace.overwrite', False)
+
     for index, config in enumerate(configs):
         config['meta.sim.index'] = index
         config['meta.sim.workspace'] = os.path.join(ws, str(index))
+    if config_filter is not None:
+        configs[:] = filter(config_filter, configs)
     if overwrite and os.path.relpath(ws) != os.curdir and os.path.isdir(ws):
         shutil.rmtree(ws)
     return simulate_many(configs, top_type, env_type, jobs)

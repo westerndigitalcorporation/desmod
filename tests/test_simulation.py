@@ -196,6 +196,25 @@ def test_simulate_factors(config):
                          result['config']['sim.result.file']))
 
 
+def test_simulate_factors_only_factor(config):
+    FACTOR_NUM = 2
+
+    def single_factor_filter_fn(cfg):
+        return cfg['meta.sim.index'] == FACTOR_NUM
+
+    factors = [(['sim.seed'], [[1], [2], [3]])]
+    results = simulate_factors(
+        config, factors, TopTest, config_filter=single_factor_filter_fn)
+    assert len(results) == 1
+    for result in results:
+        assert result['sim.exception'] is None
+        assert result['config']['meta.sim.workspace'] == os.path.join(
+            config['sim.workspace'], str(FACTOR_NUM))
+        assert os.path.exists(
+            os.path.join(result['config']['meta.sim.workspace'],
+                         result['config']['sim.result.file']))
+
+
 def test_simulate_factors_progress(config, capfd):
     config['sim.progress.enable'] = True
     config['sim.duration'] = '10 us'
