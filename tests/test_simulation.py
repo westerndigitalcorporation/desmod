@@ -198,10 +198,13 @@ def test_simulate_factors(config):
 
 def test_simulate_factors_only_factor(config):
     FACTOR_NUM = 2
-    cfg_filter_fn = lambda cfg: cfg['meta.sim.index'] == FACTOR_NUM
+
+    def single_factor_filter_fn(cfg):
+        return cfg['meta.sim.index'] == FACTOR_NUM
+
     factors = [(['sim.seed'], [[1], [2], [3]])]
     results = simulate_factors(
-        config, factors, TopTest, config_filter=cfg_filter_fn)
+        config, factors, TopTest, config_filter=single_factor_filter_fn)
     assert len(results) == 1
     for result in results:
         assert result['sim.exception'] is None
