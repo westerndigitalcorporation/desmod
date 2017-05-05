@@ -1,6 +1,11 @@
 Changelog
 =========
 
+desmod-0.5.1 (2017-04-27)
+-------------------------
+* [NEW] Add config_filter param to simulate_factors() (#14)
+* [FIX] Use pyenv for travis builds
+
 desmod-0.5.0 (2017-04-27)
 -------------------------
 * [NEW] Add desmod.dot.generate_dot()
