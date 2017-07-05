@@ -10,7 +10,7 @@ dequeues items in priority-order instead of :class:`Queue`'s FIFO discipline.
 
 """
 from collections import namedtuple
-from heapq import heappush, heappop
+from heapq import heapify, heappush, heappop
 
 from simpy import Event
 from simpy.core import BoundClass
@@ -233,6 +233,10 @@ class PriorityQueue(Queue):
     Items that evaluate less-than other items will be dequeued first.
 
     """
+
+    def __init__(self, *args, **kwargs):
+        super(PriorityQueue, self).__init__(*args, **kwargs)
+        heapify(self.items)
 
     def _enqueue_item(self, item):
         heappush(self.items, item)
