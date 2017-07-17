@@ -172,6 +172,7 @@ def simulate(config, top_type, env_type=SimEnvironment, reraise=True,
                     top_type.pre_init(env)
                     env.tracemgr.flush()
                     with progress_manager(env):
+                        _dump_dict(config_file, config)
                         top = top_type(parent=None, env=env)
                         top.elaborate()
                         env.tracemgr.flush()
@@ -193,7 +194,6 @@ def simulate(config, top_type, env_type=SimEnvironment, reraise=True,
                     result['sim.now'] = env.now
                     result['sim.time'] = env.time()
                     result['sim.runtime'] = timeit.default_timer() - t0
-                    _dump_dict(config_file, config)
                     _dump_dict(result_file, result)
     except BaseException as e:
         if reraise:
