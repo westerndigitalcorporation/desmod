@@ -287,6 +287,7 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
     if jobs is not None:
         num_workers = min(num_workers, jobs)
 
+    workers = []
     for i in range(num_workers):
         worker = Process(name='sim-worker-{}'.format(i),
                          target=_simulate_worker,
@@ -294,6 +295,7 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
                                config_queue, result_queue))
         worker.daemon = True    # Workers die if main process dies.
         worker.start()
+        workers.append(worker)
         config_queue.put(None)  # A stop sentinel for each worker.
 
     if progress_enable:
@@ -311,6 +313,9 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
         # (ahem, py.test) that may monkey-patch and close stderr while
         # progress_thread is still using it.
         progress_thread.join(1)
+
+    for worker in workers:
+        worker.join(5)
 
     return sorted(results, key=lambda r: r['config']['meta.sim.index'])
 
