@@ -1,6 +1,11 @@
 Changelog
 =========
 
+desmod-0.5.2 (2017-09-08)
+-------------------------
+* [FIX] Join worker processes in simulate_many()
+* [FIX] Ensure PriorityQueue's items are heapified
+
 desmod-0.5.1 (2017-04-27)
 -------------------------
 * [NEW] Add config_filter param to simulate_factors() (#14)
