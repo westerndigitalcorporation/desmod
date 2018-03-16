@@ -346,7 +346,7 @@ class TraceManager(object):
             self.tracers.append(self.vcd_tracer)
             self.sqlite_tracer = SQLiteTracer(env)
             self.tracers.append(self.sqlite_tracer)
-        except:
+        except BaseException:
             self.close()
             raise
 

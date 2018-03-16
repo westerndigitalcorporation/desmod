@@ -350,7 +350,7 @@ def _safe_eval(expr, coerce_type=None, eval_locals=None):
         eval_locals = _default_eval_locals
     try:
         value = eval(expr, {'__builtins__': None}, eval_locals)
-    except:
+    except BaseException:
         if coerce_type and issubclass(coerce_type, six.string_types):
             value = expr
         else:
