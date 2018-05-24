@@ -120,7 +120,10 @@ def apply_user_config(config, user_config):
         except KeyError:
             raise ConfigError('Invalid config key: {}'.format(key))
         current_type = type(current_value)
-        if not isinstance(value, current_type):
+        if not (isinstance(value, current_type) or
+                # allow new float value to replace integer default
+                #  without truncation from int to float coercion
+                (isinstance(value, float) and issubclass(current_type, int))):
             try:
                 value = current_type(value)
             except (ValueError, TypeError):
