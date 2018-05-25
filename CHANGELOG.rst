@@ -1,6 +1,13 @@
 Changelog
 =========
 
+desmod-0.5.3 (2018-05-25)
+-------------------------
+* [FIX] Repair silent truncation of config override
+* [CHANGE] Update dev requirements
+* [CHANGE] Do not use bare except
+* [CHANGE] Modernize travis-ci config
+
 desmod-0.5.2 (2017-09-08)
 -------------------------
 * [FIX] Join worker processes in simulate_many()
