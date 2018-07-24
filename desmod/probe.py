@@ -4,6 +4,7 @@ import simpy
 import six
 
 from desmod.queue import Queue
+from desmod.pool import Pool
 
 
 def attach(scope, target, callbacks, **hints):
@@ -23,6 +24,11 @@ def attach(scope, target, callbacks, **hints):
             _attach_queue_remaining(target, callbacks)
         else:
             _attach_queue_size(target, callbacks)
+    elif isinstance(target, Pool):
+        if hints.get('trace_remaining', False):
+            _attach_pool_remaining(target, callbacks)
+        else:
+            _attach_pool_level(target, callbacks)
     else:
         raise TypeError(
             'Cannot probe {} of type {}'.format(scope, type(target)))
@@ -124,3 +130,19 @@ def _attach_queue_remaining(queue, callbacks):
             callback(queue.remaining)
 
     queue._put_hook = queue._get_hook = hook
+
+
+def _attach_pool_level(pool, callbacks):
+    def hook():
+        for callback in callbacks:
+            callback(pool.level)
+
+    pool._put_hook = pool._get_hook = hook
+
+
+def _attach_pool_remaining(pool, callbacks):
+    def hook():
+        for callback in callbacks:
+            callback(pool.remaining)
+
+    pool._put_hook = pool._get_hook = hook
