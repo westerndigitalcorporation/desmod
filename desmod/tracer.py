@@ -12,6 +12,7 @@ from . import probe
 from .util import partial_format
 from .timescale import parse_time, scale_time
 from .queue import Queue
+from .pool import Pool
 
 
 class Tracer(object):
@@ -205,7 +206,7 @@ class VCDTracer(Tracer):
         assert self.enabled
         var_type = hints.get('var_type')
         if var_type is None:
-            if isinstance(target, simpy.Container):
+            if isinstance(target, (simpy.Container, Pool)):
                 if isinstance(target.level, float):
                     var_type = 'real'
                 else:
@@ -221,7 +222,7 @@ class VCDTracer(Tracer):
                   if k in hints}
 
         if 'init' not in kwargs:
-            if isinstance(target, simpy.Container):
+            if isinstance(target, (simpy.Container, Pool)):
                 kwargs['init'] = target.level
             elif isinstance(target, simpy.Resource):
                 kwargs['init'] = len(target.users) if target.users else 'z'

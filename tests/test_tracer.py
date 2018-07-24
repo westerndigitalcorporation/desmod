@@ -6,6 +6,7 @@ import simpy
 
 from desmod.component import Component
 from desmod.queue import Queue
+from desmod.pool import Pool
 from desmod.simulation import simulate
 
 pytestmark = pytest.mark.usefixtures('cleandir')
@@ -50,6 +51,7 @@ class TopTest(Component):
         self.container = simpy.Container(self.env)
         self.resource = simpy.Resource(self.env)
         self.queue = Queue(self.env)
+        self.pool = Pool(self.env)
         self.a = CompA(self)
         self.b = CompB(self)
         hints = {}
@@ -62,6 +64,7 @@ class TopTest(Component):
         self.auto_probe('container', **hints)
         self.auto_probe('resource', **hints)
         self.auto_probe('queue', **hints)
+        self.auto_probe('pool', **hints)
         self.trace_some = self.get_trace_function(
             'something', vcd={'var_type': 'real'}, log={'level': 'INFO'})
         self.trace_other = self.get_trace_function(
