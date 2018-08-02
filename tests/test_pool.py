@@ -78,12 +78,34 @@ def test_pool_overflow(env):
 
     def producer(env):
         yield env.timeout(1)
-        for i in range(5):
+        for i in range(1, 5):
             yield pool.put(i)
             yield env.timeout(1)
 
     env.process(producer(env))
     with raises(OverflowError):
+        env.run()
+
+
+def test_pool_put_zero(env):
+    pool = Pool(env, capacity=5, hard_cap=True)
+
+    def producer(env):
+        yield pool.put(0)
+
+    env.process(producer(env))
+    with raises(ValueError):
+        env.run()
+
+
+def test_pool_get_zero(env):
+    pool = Pool(env, capacity=5, hard_cap=True)
+
+    def consumer(env):
+        yield pool.get(0)
+
+    env.process(consumer(env))
+    with raises(ValueError):
         env.run()
 
 
