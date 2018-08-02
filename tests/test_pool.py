@@ -19,6 +19,9 @@ def test_pool(env):
     env.process(producer(2, 1))
     env.process(consumer(1, 0))
     env.process(consumer(2, 1))
+    env.process(consumer(2, 2))
+    env.process(producer(1, 2))
+    env.process(producer(1, 3))
     env.run()
 
 
@@ -50,7 +53,7 @@ def test_pool_when_full_any(env):
         result.append('any')
 
     def new_waiter(env):
-        yield pool.when_any()
+        yield pool.when_new()
         assert env.now == 1
         result.append('new')
 
