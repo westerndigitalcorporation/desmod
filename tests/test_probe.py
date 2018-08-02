@@ -1,5 +1,6 @@
 from desmod.probe import attach
 from desmod.queue import Queue
+from desmod.pool import Pool
 
 import pytest
 import simpy
@@ -134,3 +135,38 @@ def test_attach_queue_remaining(env):
     env.process(proc())
     env.run()
     assert values == [9, 8, 7, 8]
+
+
+def test_attach_pool_level(env):
+    values = []
+    pool = Pool(env)
+    attach('scope', pool, [values.append])
+
+    def proc():
+        yield pool.put(1)
+        yield pool.put(1)
+        yield pool.put(1)
+        item = yield pool.get(1)
+        assert item == 1
+
+    env.process(proc())
+    env.run()
+    assert values == [1, 2, 3, 2]
+
+
+def test_attach_pool_remaining(env):
+    values = []
+    pool = Pool(env, capacity=10)
+
+    attach('scope', pool, [values.append], trace_remaining=True)
+
+    def proc():
+        yield pool.put(1)
+        yield pool.put(1)
+        yield pool.put(1)
+        item = yield pool.get(3)
+        assert item == 3
+
+    env.process(proc())
+    env.run()
+    assert values == [9, 8, 7, 10]
