@@ -1,6 +1,10 @@
 Changelog
 =========
 
+desmod-0.5.4 (2018-08-20)
+-------------------------
+* [NEW] Add desmod.pool.Pool for modeling pool of resources
+
 desmod-0.5.3 (2018-05-25)
 -------------------------
 * [FIX] Repair silent truncation of config override
