@@ -1,11 +1,10 @@
 # encoding: utf-8
 from setuptools import setup
 
-
 setup(
     name='desmod',
     author='Peter Grayson',
-    author_email='jpgrayson@gmail.com',
+    author_email='pete@jpgrayson.net',
     description='Discrete Event Simulation Modeling using SimPy',
     long_description='\n\n'.join(
         open(f, 'rb').read().decode('utf-8')
@@ -31,10 +30,10 @@ setup(
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.2',
-        'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Scientific/Engineering',
