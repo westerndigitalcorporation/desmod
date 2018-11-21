@@ -1,13 +1,12 @@
 import os
 import sqlite3
 
+from desmod.component import Component
+from desmod.pool import Pool
+from desmod.queue import Queue
+from desmod.simulation import simulate
 import pytest
 import simpy
-
-from desmod.component import Component
-from desmod.queue import Queue
-from desmod.pool import Pool
-from desmod.simulation import simulate
 
 pytestmark = pytest.mark.usefixtures('cleandir')
 
@@ -273,7 +272,7 @@ def test_db_persist(config):
 
 def test_db_include_pat(config):
     config['sim.db.enable'] = True
-    config['sim.db.include_pat'] = ['top\.resource']
+    config['sim.db.include_pat'] = [r'top\.resource']
     simulate(config, TopTest)
     db_path = os.path.join(config['sim.workspace'], config['sim.db.file'])
     assert os.path.exists(db_path)
