@@ -23,13 +23,17 @@ Most functions in this module are provided to support building user interfaces
 for configuring a model.
 
 """
+from collections import namedtuple
 from copy import deepcopy
-from collections import namedtuple, Sequence
 from itertools import product
 
+from six.moves import builtins, zip
 import six
-from six.moves import builtins
-from six.moves import zip
+
+try:
+    from collections.abc import Sequence
+except ImportError:
+    from collections import Sequence
 
 
 class ConfigError(Exception):
