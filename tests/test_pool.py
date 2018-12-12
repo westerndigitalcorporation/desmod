@@ -43,6 +43,11 @@ def test_pool2(env):
         when_new = pool.when_new()
         assert not when_new.triggered
 
+        when_not_full = pool.when_not_full()
+        assert when_not_full.triggered
+
+        when_not_full.cancel()
+
         with raises(ValueError):
             pool.put(pool.capacity + 1)
 
@@ -81,6 +86,15 @@ def test_pool2(env):
         assert when_full2.triggered
         assert get_two.triggered
         assert pool.level == 0
+
+        yield pool.put(2)
+
+        when_not_full = pool.when_not_full()
+        assert not when_not_full.triggered
+
+        yield pool.get(1)
+
+        assert when_not_full.triggered
 
     env.process(proc(env, pool))
     env.run()

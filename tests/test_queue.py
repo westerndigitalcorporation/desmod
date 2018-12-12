@@ -85,6 +85,26 @@ def test_queue_repr(env):
     assert str(pri_queue) == 'PriorityQueue(name=None size=0 capacity=3)'
 
 
+def test_when_not_full(env):
+    queue = Queue(env, capacity=2, items=[0, 1])
+
+    def consumer(env):
+        for i in range(2):
+            yield env.timeout(3)
+            msg = yield queue.get()
+            assert msg == i
+
+    def not_full_waiter(env):
+        yield queue.when_not_full()
+        assert env.now == 3
+        yield queue.when_not_full()
+        assert env.now == 3
+
+    env.process(consumer(env))
+    env.process(not_full_waiter(env))
+    env.run()
+
+
 def test_queue_cancel(env):
     queue = Queue(env, capacity=2)
 
@@ -108,6 +128,7 @@ def test_queue_cancel(env):
 
         assert not get_ev.triggered
         assert not any_ev.triggered
+        assert not full_ev.triggered
         get_ev.cancel()
         any_ev.cancel()
         full_ev.cancel()
@@ -117,13 +138,16 @@ def test_queue_cancel(env):
 
         put_ev = queue.put(1)
         new_ev = queue.when_new()
+        not_full_ev = queue.when_not_full()
 
         yield env.timeout(1)
 
         assert not put_ev.triggered
         assert not new_ev.triggered
+        assert not not_full_ev.triggered
         put_ev.cancel()
         new_ev.cancel()
+        not_full_ev.cancel()
 
         yield env.timeout(100)
 
@@ -132,6 +156,7 @@ def test_queue_cancel(env):
         assert not put_ev.triggered
         assert not put_ev.triggered
         assert not new_ev.triggered
+        assert not not_full_ev.triggered
 
     env.process(producer(env))
     env.process(consumer(env))

@@ -43,6 +43,7 @@ class PoolGetEvent(Event):
         self.amount = amount
         self.callbacks.extend(
             [
+                pool._trigger_when_not_full,
                 pool._trigger_put,
             ]
         )
@@ -93,6 +94,19 @@ class PoolWhenFullEvent(Event):
             self.callbacks = None
 
 
+class PoolWhenNotFullEvent(Event):
+    def __init__(self, pool):
+        super(PoolWhenNotFullEvent, self).__init__(pool.env)
+        self.pool = pool
+        pool._not_full_waiters.append(self)
+        pool._trigger_when_not_full()
+
+    def cancel(self):
+        if not self.triggered:
+            self.pool._not_full_waiters.remove(self)
+            self.callbacks = None
+
+
 class Pool(object):
     """Simulation pool of discrete or continuous resources.
 
@@ -126,6 +140,7 @@ class Pool(object):
         self._new_waiters = []
         self._any_waiters = []
         self._full_waiters = []
+        self._not_full_waiters = []
         self._put_hook = None
         self._get_hook = None
         BoundClass.bind_early(self)
@@ -159,6 +174,9 @@ class Pool(object):
 
     #: Return an event triggered when the pool becomes full.
     when_full = BoundClass(PoolWhenFullEvent)
+
+    #: Return an event triggered when the pool becomes not full.
+    when_not_full = BoundClass(PoolWhenNotFullEvent)
 
     def _trigger_put(self, _=None):
         idx = 0
@@ -204,6 +222,12 @@ class Pool(object):
             for when_full_ev in self._full_waiters:
                 when_full_ev.succeed()
             del self._full_waiters[:]
+
+    def _trigger_when_not_full(self, _=None):
+        if self.level < self.capacity:
+            for when_not_full_ev in self._not_full_waiters:
+                when_not_full_ev.succeed()
+            del self._not_full_waiters[:]
 
     def __repr__(self):
         return (
