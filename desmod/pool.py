@@ -10,13 +10,30 @@ from simpy import Event
 from simpy.core import BoundClass
 
 
-class PoolPutEvent(Event):
+class PoolEvent(Event):
+    def __init__(self, pool):
+        super(PoolEvent, self).__init__(pool.env)
+        self.pool = pool
+        pool._waiters.setdefault(type(self), []).append(self)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.cancel()
+
+    def cancel(self):
+        if not self.triggered:
+            self.pool._waiters[type(self)].remove(self)
+            self.callbacks = None
+
+
+class PoolPutEvent(PoolEvent):
     def __init__(self, pool, amount=1):
-        super(PoolPutEvent, self).__init__(pool.env)
         if not (0 < amount <= pool.capacity):
             raise ValueError('amount must be in (0, capacity]')
-        self.pool = pool
         self.amount = amount
+        super(PoolPutEvent, self).__init__(pool)
         self.callbacks.extend(
             [
                 pool._trigger_when_full,
@@ -25,86 +42,44 @@ class PoolPutEvent(Event):
                 pool._trigger_get,
             ]
         )
-        pool._putters.append(self)
         pool._trigger_put()
 
-    def cancel(self):
-        if not self.triggered:
-            self.pool._putters.remove(self)
-            self.callbacks = None
 
-
-class PoolGetEvent(Event):
+class PoolGetEvent(PoolEvent):
     def __init__(self, pool, amount=1):
-        super(PoolGetEvent, self).__init__(pool.env)
         if not (0 < amount <= pool.capacity):
             raise ValueError('amount must be in (0, capacity]')
-        self.pool = pool
         self.amount = amount
+        super(PoolGetEvent, self).__init__(pool)
         self.callbacks.extend(
             [
                 pool._trigger_when_not_full,
                 pool._trigger_put,
             ]
         )
-        pool._getters.append(self)
         pool._trigger_get()
 
-    def cancel(self):
-        if not self.triggered:
-            self.pool._getters.remove(self)
-            self.callbacks = None
+
+class PoolWhenNewEvent(PoolEvent):
+    pass
 
 
-class PoolWhenNewEvent(Event):
+class PoolWhenAnyEvent(PoolEvent):
     def __init__(self, pool):
-        super(PoolWhenNewEvent, self).__init__(pool.env)
-        self.pool = pool
-        pool._new_waiters.append(self)
-
-    def cancel(self):
-        if not self.triggered:
-            self.pool._new_waiters.remove(self)
-            self.callbacks = None
-
-
-class PoolWhenAnyEvent(Event):
-    def __init__(self, pool):
-        super(PoolWhenAnyEvent, self).__init__(pool.env)
-        self.pool = pool
-        pool._any_waiters.append(self)
+        super(PoolWhenAnyEvent, self).__init__(pool)
         pool._trigger_when_any()
 
-    def cancel(self):
-        if not self.triggered:
-            self.pool._any_waiters.remove(self)
-            self.callbacks = None
 
-
-class PoolWhenFullEvent(Event):
+class PoolWhenFullEvent(PoolEvent):
     def __init__(self, pool):
-        super(PoolWhenFullEvent, self).__init__(pool.env)
-        self.pool = pool
-        pool._full_waiters.append(self)
+        super(PoolWhenFullEvent, self).__init__(pool)
         pool._trigger_when_full()
 
-    def cancel(self):
-        if not self.triggered:
-            self.pool._full_waiters.remove(self)
-            self.callbacks = None
 
-
-class PoolWhenNotFullEvent(Event):
+class PoolWhenNotFullEvent(PoolEvent):
     def __init__(self, pool):
-        super(PoolWhenNotFullEvent, self).__init__(pool.env)
-        self.pool = pool
-        pool._not_full_waiters.append(self)
+        super(PoolWhenNotFullEvent, self).__init__(pool)
         pool._trigger_when_not_full()
-
-    def cancel(self):
-        if not self.triggered:
-            self.pool._not_full_waiters.remove(self)
-            self.callbacks = None
 
 
 class Pool(object):
@@ -135,12 +110,7 @@ class Pool(object):
         self.level = init
         self._hard_cap = hard_cap
         self.name = name
-        self._putters = []
-        self._getters = []
-        self._new_waiters = []
-        self._any_waiters = []
-        self._full_waiters = []
-        self._not_full_waiters = []
+        self._waiters = {}
         self._put_hook = None
         self._get_hook = None
         BoundClass.bind_early(self)
@@ -179,11 +149,12 @@ class Pool(object):
     when_not_full = BoundClass(PoolWhenNotFullEvent)
 
     def _trigger_put(self, _=None):
+        waiters = self._waiters.get(PoolPutEvent)
         idx = 0
-        while idx < len(self._putters):
-            put_ev = self._putters[idx]
+        while waiters and idx < len(waiters):
+            put_ev = waiters[idx]
             if self.capacity - self.level >= put_ev.amount:
-                self._putters.pop(idx)
+                waiters.pop(idx)
                 self.level += put_ev.amount
                 put_ev.succeed()
                 if self._put_hook:
@@ -194,11 +165,12 @@ class Pool(object):
                 idx += 1
 
     def _trigger_get(self, _=None):
+        waiters = self._waiters.get(PoolGetEvent)
         idx = 0
-        while idx < len(self._getters):
-            get_ev = self._getters[idx]
+        while waiters and idx < len(waiters):
+            get_ev = waiters[idx]
             if get_ev.amount <= self.level:
-                self._getters.pop(idx)
+                waiters.pop(idx)
                 self.level -= get_ev.amount
                 get_ev.succeed(get_ev.amount)
                 if self._get_hook:
@@ -207,27 +179,32 @@ class Pool(object):
                 idx += 1
 
     def _trigger_when_new(self, _=None):
-        for when_new_ev in self._new_waiters:
-            when_new_ev.succeed()
-        del self._new_waiters[:]
+        waiters = self._waiters.get(PoolWhenNewEvent)
+        if waiters:
+            for when_new_ev in waiters:
+                when_new_ev.succeed()
+            del waiters[:]
 
     def _trigger_when_any(self, _=None):
-        if self.level:
-            for when_any_ev in self._any_waiters:
+        waiters = self._waiters.get(PoolWhenAnyEvent)
+        if waiters and self.level:
+            for when_any_ev in waiters:
                 when_any_ev.succeed()
-            del self._any_waiters[:]
+            del waiters[:]
 
     def _trigger_when_full(self, _=None):
-        if self.level >= self.capacity:
-            for when_full_ev in self._full_waiters:
+        waiters = self._waiters.get(PoolWhenFullEvent)
+        if waiters and self.level >= self.capacity:
+            for when_full_ev in waiters:
                 when_full_ev.succeed()
-            del self._full_waiters[:]
+            del waiters[:]
 
     def _trigger_when_not_full(self, _=None):
-        if self.level < self.capacity:
-            for when_not_full_ev in self._not_full_waiters:
+        waiters = self._waiters.get(PoolWhenNotFullEvent)
+        if waiters and self.level < self.capacity:
+            for when_not_full_ev in waiters:
                 when_not_full_ev.succeed()
-            del self._not_full_waiters[:]
+            del waiters[:]
 
     def __repr__(self):
         return (

@@ -134,7 +134,8 @@ def test_queue_cancel(env):
         full_ev.cancel()
 
         assert not queue.is_full
-        yield queue.when_full()
+        with queue.when_full() as when_full:
+            yield when_full
 
         put_ev = queue.put(1)
         new_ev = queue.when_new()

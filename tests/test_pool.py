@@ -43,10 +43,9 @@ def test_pool2(env):
         when_new = pool.when_new()
         assert not when_new.triggered
 
-        when_not_full = pool.when_not_full()
-        assert when_not_full.triggered
-
-        when_not_full.cancel()
+        with pool.when_not_full() as when_not_full:
+            yield when_not_full
+            assert when_not_full.triggered
 
         with raises(ValueError):
             pool.put(pool.capacity + 1)
@@ -138,21 +137,20 @@ def test_pool_get_zero(env):
 
 
 def test_pool_get_too_many(env):
-    pool = Pool(env, capacity=6, name='foo')
-
-    def producer(env):
+    def producer(env, pool):
         yield pool.put(1)
         yield env.timeout(1)
         yield pool.put(1)
 
-    def consumer(env):
+    def consumer(env, pool):
         amount = yield pool.get(1)
         assert amount == 1
         with raises(ValueError):
             yield pool.get(pool.capacity + 1)
 
-    env.process(producer(env))
-    env.process(consumer(env))
+    pool = Pool(env, capacity=6, name='foo')
+    env.process(producer(env, pool))
+    env.process(consumer(env, pool))
     env.run()
 
 
