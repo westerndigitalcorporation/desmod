@@ -10,7 +10,7 @@ dequeues items in priority-order instead of :class:`Queue`'s FIFO discipline.
 
 """
 from collections import namedtuple
-from heapq import heapify, heappush, heappop
+from heapq import heapify, heappop, heappush
 
 from simpy import Event
 from simpy.core import BoundClass
@@ -202,11 +202,11 @@ class Queue(object):
                 when_full_ev.succeed()
             del self._full_waiters[:]
 
-    def __str__(self):
-        return ('Queue: name={0.name}'
-                ' size={1}'
-                ' capacity={0.capacity}'
-                ')'.format(self, len(self.items)))
+    def __repr__(self):
+        return (
+            '{0.__class__.__name__}(name={0.name!r} size={0.size}'
+            ' capacity={0.capacity})'
+        ).format(self)
 
 
 class PriorityItem(namedtuple('PriorityItem', 'priority item')):

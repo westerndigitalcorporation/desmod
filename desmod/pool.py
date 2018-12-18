@@ -194,8 +194,8 @@ class Pool(object):
                 when_full_ev.succeed()
             del self._full_waiters[:]
 
-    def __str__(self):
-        return ('Pool: name={0.name}'
-                ' level={0.level}'
-                ' capacity={0.capacity}'
-                ')'.format(self))
+    def __repr__(self):
+        return (
+            '{0.__class__.__name__}(name={0.name!r} level={0.level}'
+            ' capacity={0.capacity})'
+        ).format(self)

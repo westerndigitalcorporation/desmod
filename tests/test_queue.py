@@ -1,4 +1,4 @@
-from desmod.queue import Queue, PriorityQueue
+from desmod.queue import PriorityQueue, Queue
 
 
 def test_mq(env):
@@ -75,3 +75,11 @@ def test_priority_mq(env):
     env.process(producer(env))
     env.process(consumer(env))
     env.run()
+
+
+def test_queue_repr(env):
+    queue = Queue(env, name='hi', items=[3, 2, 1])
+    assert str(queue) == "Queue(name='hi' size=3 capacity=inf)"
+
+    pri_queue = PriorityQueue(env, capacity=3)
+    assert str(pri_queue) == 'PriorityQueue(name=None size=0 capacity=3)'

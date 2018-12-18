@@ -153,11 +153,4 @@ def test_pool_cancel(env):
 
 def test_pool_check_str(env):
     pool = Pool(env, name='bar', capacity=5)
-
-    def producer(env, amount):
-        yield env.timeout(1)
-        yield pool.put(amount)
-
-    env.process(producer(env, 1))
-    env.run()
-    assert str(pool) == "Pool: name=bar level=1 capacity=5)"
+    assert str(pool) == "Pool(name='bar' level=0 capacity=5)"
