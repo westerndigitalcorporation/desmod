@@ -33,6 +33,23 @@ def test_queue_peek(env):
     assert queue2.peek() == 9
 
 
+def test_queue_when_new(env):
+    def proc(env, queue):
+        when_new = queue.when_new()
+        assert not when_new.triggered
+        yield queue.put(1)
+        assert when_new.triggered
+
+        when_new = [queue.when_new() for _ in range(3)]
+        assert not any(ev.triggered for ev in when_new)
+        yield queue.put(1)
+        assert all(ev.triggered for ev in when_new)
+
+    queue = Queue(env)
+    env.process(proc(env, queue))
+    env.run()
+
+
 def test_mq_when_full(env):
     queue = Queue(env, capacity=2)
     result = []
