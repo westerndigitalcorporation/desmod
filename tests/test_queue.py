@@ -1,3 +1,5 @@
+from pytest import raises
+
 from desmod.queue import PriorityQueue, Queue
 
 
@@ -18,6 +20,17 @@ def test_mq(env):
     env.process(consumer('1st', 0))
     env.process(consumer('2nd', 1))
     env.run()
+
+
+def test_queue_peek(env):
+    queue = Queue(env)
+    assert queue.is_empty
+    with raises(IndexError):
+        queue.peek()
+
+    queue2 = Queue(env, items=[9, 8, 7])
+    assert not queue2.is_empty
+    assert queue2.peek() == 9
 
 
 def test_mq_when_full(env):
