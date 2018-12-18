@@ -1,6 +1,6 @@
 from pytest import raises
 
-from desmod.queue import PriorityQueue, Queue
+from desmod.queue import PriorityItem, PriorityQueue, Queue
 
 
 def test_mq(env):
@@ -105,16 +105,17 @@ def test_priority_mq(env):
     queue = PriorityQueue(env)
 
     def producer(env):
-        for i in reversed(range(5)):
-            yield queue.put(i)
+        for priority in reversed(range(5)):
+            item = set([priority])  # unhashable
+            yield queue.put(PriorityItem(priority, item))
             yield env.timeout(1)
 
     def consumer(env):
         yield env.timeout(5)
         for i in range(5):
             msg = yield queue.get()
+            assert msg.item == set([i])
             yield env.timeout(1)
-            assert msg == i
 
     env.process(producer(env))
     env.process(consumer(env))
