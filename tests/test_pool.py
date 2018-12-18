@@ -54,13 +54,17 @@ def test_pool2(env):
 
         put_one = pool.put(1)
         assert put_one.triggered
-        assert when_any.triggered
-        assert when_new.triggered
+
+        assert not when_any.triggered
+        assert not when_new.triggered
         assert not get_two.triggered
         assert not when_full.triggered
         assert pool.level == 1
 
         yield put_one
+        assert when_any.triggered
+        assert when_new.triggered
+
         yield env.timeout(1)
 
         when_full2 = pool.when_full()
@@ -68,11 +72,13 @@ def test_pool2(env):
 
         put_one = pool.put(1)
         assert put_one.triggered
-        assert when_full.triggered
-        assert when_full2.triggered
+        assert not when_full.triggered
+        assert not when_full2.triggered
 
         yield put_one
 
+        assert when_full.triggered
+        assert when_full2.triggered
         assert get_two.triggered
         assert pool.level == 0
 

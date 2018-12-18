@@ -17,7 +17,14 @@ class PoolPutEvent(Event):
             raise ValueError('amount must be in (0, capacity]')
         self.pool = pool
         self.amount = amount
-        self.callbacks.append(pool._trigger_get)
+        self.callbacks.extend(
+            [
+                pool._trigger_when_full,
+                pool._trigger_when_new,
+                pool._trigger_when_any,
+                pool._trigger_get,
+            ]
+        )
         pool._putters.append(self)
         pool._trigger_put()
 
@@ -34,7 +41,11 @@ class PoolGetEvent(Event):
             raise ValueError('amount must be in (0, capacity]')
         self.pool = pool
         self.amount = amount
-        self.callbacks.append(pool._trigger_put)
+        self.callbacks.extend(
+            [
+                pool._trigger_put,
+            ]
+        )
         pool._getters.append(self)
         pool._trigger_get()
 
@@ -157,9 +168,6 @@ class Pool(object):
                 self._putters.pop(idx)
                 self.level += put_ev.amount
                 put_ev.succeed()
-                self._trigger_when_new()
-                self._trigger_when_any()
-                self._trigger_when_full()
                 if self._put_hook:
                     self._put_hook()
             elif self._hard_cap:
@@ -180,18 +188,18 @@ class Pool(object):
             else:
                 idx += 1
 
-    def _trigger_when_new(self):
+    def _trigger_when_new(self, _=None):
         for when_new_ev in self._new_waiters:
             when_new_ev.succeed()
         del self._new_waiters[:]
 
-    def _trigger_when_any(self):
+    def _trigger_when_any(self, _=None):
         if self.level:
             for when_any_ev in self._any_waiters:
                 when_any_ev.succeed()
             del self._any_waiters[:]
 
-    def _trigger_when_full(self):
+    def _trigger_when_full(self, _=None):
         if self.level >= self.capacity:
             for when_full_ev in self._full_waiters:
                 when_full_ev.succeed()

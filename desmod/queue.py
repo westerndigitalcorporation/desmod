@@ -21,7 +21,14 @@ class QueuePutEvent(Event):
         super(QueuePutEvent, self).__init__(queue.env)
         self.queue = queue
         self.item = item
-        self.callbacks.append(queue._trigger_get)
+        self.callbacks.extend(
+            [
+                queue._trigger_when_full,
+                queue._trigger_when_new,
+                queue._trigger_when_any,
+                queue._trigger_get,
+            ]
+        )
         queue._putters.append(self)
         queue._trigger_put()
 
@@ -35,7 +42,11 @@ class QueueGetEvent(Event):
     def __init__(self, queue):
         super(QueueGetEvent, self).__init__(queue.env)
         self.queue = queue
-        self.callbacks.append(queue._trigger_put)
+        self.callbacks.extend(
+            [
+                queue._trigger_put,
+            ]
+        )
         queue._getters.append(self)
         queue._trigger_get()
 
@@ -169,9 +180,6 @@ class Queue(object):
                 put_ev = self._putters.pop(0)
                 self._enqueue_item(put_ev.item)
                 put_ev.succeed()
-                self._trigger_when_new()
-                self._trigger_when_any()
-                self._trigger_when_full()
                 if self._put_hook:
                     self._put_hook()
             elif self._hard_cap:
@@ -187,18 +195,18 @@ class Queue(object):
             if self._get_hook:
                 self._get_hook()
 
-    def _trigger_when_new(self):
+    def _trigger_when_new(self, _=None):
         for when_new_ev in self._new_waiters:
             when_new_ev.succeed()
         del self._new_waiters[:]
 
-    def _trigger_when_any(self):
+    def _trigger_when_any(self, _=None):
         if self.items:
             for when_any_ev in self._any_waiters:
                 when_any_ev.succeed()
             del self._any_waiters[:]
 
-    def _trigger_when_full(self):
+    def _trigger_when_full(self, _=None):
         if len(self.items) == self.capacity:
             for when_full_ev in self._full_waiters:
                 when_full_ev.succeed()
