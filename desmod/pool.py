@@ -107,10 +107,11 @@ class Pool(object):
     def __init__(self, env, capacity=float('inf'), init=0, hard_cap=False,
                  name=None):
         self.env = env
-        #: Capacity of the queue (maximum number of items).
+        #: Capacity of the pool (maximum level).
         self.capacity = capacity
-        self._hard_cap = hard_cap
+        #: Current fill level of the pool.
         self.level = init
+        self._hard_cap = hard_cap
         self.name = name
         self._putters = []
         self._getters = []
@@ -136,10 +137,10 @@ class Pool(object):
         """Indicates whether the pool is full."""
         return self.level >= self.capacity
 
-    #: Put amount items in the pool.
+    #: Put amount in the pool.
     put = BoundClass(PoolPutEvent)
 
-    #: Get amount items from the queue.
+    #: Get amount from the pool.
     get = BoundClass(PoolGetEvent)
 
     #: Return an event triggered when the pool is non-empty.
