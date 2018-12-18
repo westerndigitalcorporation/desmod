@@ -13,8 +13,8 @@ from simpy.core import BoundClass
 class PoolPutEvent(Event):
     def __init__(self, pool, amount=1):
         super(PoolPutEvent, self).__init__(pool.env)
-        if amount <= 0:
-            raise ValueError('amount {} must be > 0'.format(amount))
+        if not (0 < amount <= pool.capacity):
+            raise ValueError('amount must be in (0, capacity]')
         self.pool = pool
         self.amount = amount
         self.callbacks.append(pool._trigger_get)
@@ -30,11 +30,8 @@ class PoolPutEvent(Event):
 class PoolGetEvent(Event):
     def __init__(self, pool, amount=1):
         super(PoolGetEvent, self).__init__(pool.env)
-        if amount <= 0:
-            raise ValueError('amount {} must be > 0'.format(amount))
-        assert amount <= pool.capacity, (
-            "Amount {} greater than pool's {} capacity {}".format(
-                amount, str(pool.name), pool.capacity))
+        if not (0 < amount <= pool.capacity):
+            raise ValueError('amount must be in (0, capacity]')
         self.pool = pool
         self.amount = amount
         self.callbacks.append(pool._trigger_put)
@@ -153,29 +150,35 @@ class Pool(object):
     when_full = BoundClass(PoolWhenFullEvent)
 
     def _trigger_put(self, _=None):
-        if self._putters:
-            put_ev = self._putters.pop(0)
-            put_ev.succeed()
-            self.level += put_ev.amount
-            self._trigger_when_new()
-            self._trigger_when_any()
-            self._trigger_when_full()
-            if self._put_hook:
-                self._put_hook()
-        if self.level > self.capacity and self._hard_cap:
-            raise OverflowError()
+        idx = 0
+        while idx < len(self._putters):
+            put_ev = self._putters[idx]
+            if self.capacity - self.level >= put_ev.amount:
+                self._putters.pop(idx)
+                self.level += put_ev.amount
+                put_ev.succeed()
+                self._trigger_when_new()
+                self._trigger_when_any()
+                self._trigger_when_full()
+                if self._put_hook:
+                    self._put_hook()
+            elif self._hard_cap:
+                raise OverflowError()
+            else:
+                idx += 1
 
     def _trigger_get(self, _=None):
-        while self._getters and self.level:
-            get_ev = self._getters[0]
+        idx = 0
+        while idx < len(self._getters):
+            get_ev = self._getters[idx]
             if get_ev.amount <= self.level:
-                assert self._getters.pop(0) is get_ev
+                self._getters.pop(idx)
                 self.level -= get_ev.amount
                 get_ev.succeed(get_ev.amount)
                 if self._get_hook:
                     self._get_hook()
             else:
-                break
+                idx += 1
 
     def _trigger_when_new(self):
         for when_new_ev in self._new_waiters:

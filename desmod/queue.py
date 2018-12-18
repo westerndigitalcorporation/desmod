@@ -164,11 +164,11 @@ class Queue(object):
         return self.items.pop(0)
 
     def _trigger_put(self, _=None):
-        if self._putters:
+        while self._putters:
             if len(self.items) < self.capacity:
                 put_ev = self._putters.pop(0)
-                put_ev.succeed()
                 self._enqueue_item(put_ev.item)
+                put_ev.succeed()
                 self._trigger_when_new()
                 self._trigger_when_any()
                 self._trigger_when_full()
@@ -176,9 +176,11 @@ class Queue(object):
                     self._put_hook()
             elif self._hard_cap:
                 raise OverflowError()
+            else:
+                break
 
     def _trigger_get(self, _=None):
-        if self._getters and self.items:
+        while self._getters and self.items:
             get_ev = self._getters.pop(0)
             item = self._dequeue_item()
             get_ev.succeed(item)
