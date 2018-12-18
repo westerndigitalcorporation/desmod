@@ -83,3 +83,57 @@ def test_queue_repr(env):
 
     pri_queue = PriorityQueue(env, capacity=3)
     assert str(pri_queue) == 'PriorityQueue(name=None size=0 capacity=3)'
+
+
+def test_queue_cancel(env):
+    queue = Queue(env, capacity=2)
+
+    def producer(env):
+        for i in range(5):
+            yield env.timeout(5)
+            yield queue.put(i)
+
+    def consumer(env):
+        for i in range(3):
+            yield env.timeout(10)
+            msg = yield queue.get()
+            assert msg == i
+
+    def canceller(env):
+        any_ev = queue.when_any()
+        get_ev = queue.get()
+        full_ev = queue.when_full()
+
+        yield env.timeout(1)
+
+        assert not get_ev.triggered
+        assert not any_ev.triggered
+        get_ev.cancel()
+        any_ev.cancel()
+        full_ev.cancel()
+
+        assert not queue.is_full
+        yield queue.when_full()
+
+        put_ev = queue.put(1)
+        new_ev = queue.when_new()
+
+        yield env.timeout(1)
+
+        assert not put_ev.triggered
+        assert not new_ev.triggered
+        put_ev.cancel()
+        new_ev.cancel()
+
+        yield env.timeout(100)
+
+        assert not get_ev.triggered
+        assert not any_ev.triggered
+        assert not put_ev.triggered
+        assert not put_ev.triggered
+        assert not new_ev.triggered
+
+    env.process(producer(env))
+    env.process(consumer(env))
+    env.process(canceller(env))
+    env.run()
