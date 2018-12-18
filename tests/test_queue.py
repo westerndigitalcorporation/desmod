@@ -33,6 +33,20 @@ def test_queue_peek(env):
     assert queue2.peek() == 9
 
 
+def test_queue_overflow(env):
+    def proc(env, queue):
+        yield queue.put(1)
+        yield env.timeout(1)
+        yield queue.put(1)
+        yield env.timeout(1)
+        with raises(OverflowError):
+            yield queue.put(1)
+
+    queue = Queue(env, capacity=2, hard_cap=True)
+    env.process(proc(env, queue))
+    env.run()
+
+
 def test_queue_when_new(env):
     def proc(env, queue):
         when_new = queue.when_new()
