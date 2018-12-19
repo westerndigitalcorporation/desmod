@@ -1,23 +1,24 @@
-group: travis_latest
+dist: xenial
 language: python
 cache: pip
 
 matrix:
   include:
     - python: '2.7'
-      env: COVERAGE=--cov
-    - python: 'pypy'
+      env:
+        - COVERAGE=--cov
+        - FLAKE8=--flake8
+    - python: 'pypy2.7-6.0'
     - python: '3.4'
     - python: '3.5'
     - python: '3.6'
     - python: '3.7'
-      env: COVERAGE=--cov
-      dist: xenial
-    - python: 'pypy3'
+      env:
+        - COVERAGE=--cov
+        - FLAKE8=--flake8
+    - python: 'pypy3.5-6.0'
     - python: '3.8-dev'
-      dist: xenial
     - python: 'nightly'
-      dist: xenial
   allow_failures:
     - python: '3.8-dev'
     - python: 'nightly'
@@ -28,7 +29,7 @@ install:
   - pip install -e .
 
 script:
-  - py.test --flake8 $COVERAGE
+  - py.test $FLAKE8 $COVERAGE
 
 after_success:
   - if [ -n "$COVERAGE" ]; then coveralls; fi
