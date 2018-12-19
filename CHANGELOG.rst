@@ -1,6 +1,20 @@
 Changelog
 =========
 
+desmod-0.5.5 (2018-12-19)
+-------------------------
+* [NEW] Add Queue.when_not_full() and Pool.when_not_full()
+* [NEW] Context manager protocol for Queue and Pool
+* [CHANGE] Pool checks validity of get/put amounts
+* [CHANGE] Pool getters/putters are not strictly FIFO
+* [CHANGE] __repr__() for Queue and Pool
+* [FIX] Pool no longer allows capacity to be exceeded
+* [FIX] Pool and Queue trigger all getters and putters
+* [FIX] Pool and Queue trigger from callbacks
+* [FIX] Repair deprecated import from collections
+* [FIX] Various Pool docstrings
+* [FIX] Complete unit test coverage for Queue and Pool
+
 desmod-0.5.4 (2018-08-20)
 -------------------------
 * [NEW] Add desmod.pool.Pool for modeling pool of resources
