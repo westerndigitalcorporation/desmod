@@ -6,6 +6,8 @@ empty or full. Users can put or get items in the pool with a certain amount as
 a parameter.
 """
 
+import heapq
+
 from simpy import Event
 from simpy.core import BoundClass
 
@@ -211,3 +213,111 @@ class Pool(object):
             '{0.__class__.__name__}(name={0.name!r} level={0.level}'
             ' capacity={0.capacity})'
         ).format(self)
+
+
+class PriorityPoolEvent(Event):
+    def __init__(self, pool, priority):
+        super(PriorityPoolEvent, self).__init__(pool.env)
+        self.pool = pool
+        self.key = priority, pool._event_count
+        pool._event_count += 1
+        waiters = pool._waiters.setdefault(type(self), [])
+        heapq.heappush(waiters, self)
+
+    def __lt__(self, other):
+        return self.key < other.key
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.cancel()
+
+    def cancel(self):
+        if not self.triggered:
+            waiters = self.pool._waiters[type(self)]
+            waiters.remove(self)
+            heapq.heapify(waiters)
+            self.callbacks = None
+
+
+class PriorityPoolPutEvent(PriorityPoolEvent):
+    def __init__(self, pool, amount=1, priority=0):
+        if not (0 < amount <= pool.capacity):
+            raise ValueError('amount must be in (0, capacity]')
+        self.amount = amount
+        super(PriorityPoolPutEvent, self).__init__(pool, priority)
+        self.callbacks.extend(
+            [
+                pool._trigger_when_full,
+                pool._trigger_when_new,
+                pool._trigger_when_any,
+                pool._trigger_get,
+            ]
+        )
+        pool._trigger_put()
+
+
+class PriorityPoolGetEvent(PriorityPoolEvent):
+    def __init__(self, pool, amount=1, priority=0):
+        if not (0 < amount <= pool.capacity):
+            raise ValueError('amount must be in (0, capacity]')
+        self.amount = amount
+        super(PriorityPoolGetEvent, self).__init__(pool, priority)
+        self.callbacks.extend(
+            [
+                pool._trigger_when_not_full,
+                pool._trigger_put,
+            ]
+        )
+        pool._trigger_get()
+
+
+class PriorityPool(Pool):
+    """Pool with prioritizied put() and get() requests.
+
+    A priority is provided with `put()` and `get()` requests. This priority
+    determines the strict order in which requests are fulfilled. Requests of
+    the same priority are serviced in strict FIFO order.
+
+    """
+
+    def __init__(
+        self, env, capacity=float('inf'), init=0, hard_cap=False, name=None
+    ):
+        super(PriorityPool, self).__init__(env, capacity, init, hard_cap, name)
+        self._event_count = 0
+
+    #: Put amount in the pool.
+    put = BoundClass(PriorityPoolPutEvent)
+
+    #: Get amount from the pool.
+    get = BoundClass(PriorityPoolGetEvent)
+
+    def _trigger_put(self, _=None):
+        waiters = self._waiters.get(PriorityPoolPutEvent)
+        while waiters:
+            put_ev = waiters[0]
+            if self.capacity - self.level >= put_ev.amount:
+                heapq.heappop(waiters)
+                self.level += put_ev.amount
+                put_ev.succeed()
+                if self._put_hook:
+                    self._put_hook()
+            elif self._hard_cap:
+                raise OverflowError()
+            else:
+                break
+
+    def _trigger_get(self, _=None):
+        waiters = self._waiters.get(PriorityPoolGetEvent)
+        while waiters:
+            get_ev = waiters[0]
+            if get_ev.amount <= self.level:
+                heapq.heappop(waiters)
+                self.level -= get_ev.amount
+                get_ev.succeed(get_ev.amount)
+                if self._get_hook:
+                    self._get_hook()
+            else:
+                break

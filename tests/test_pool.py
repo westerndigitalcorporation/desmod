@@ -1,10 +1,11 @@
+from desmod.pool import Pool, PriorityPool
 from pytest import raises
+import pytest
 
-from desmod.pool import Pool
 
-
-def test_pool(env):
-    pool = Pool(env, capacity=2)
+@pytest.mark.parametrize('PoolClass', [Pool, PriorityPool])
+def test_pool(env, PoolClass):
+    pool = PoolClass(env, capacity=2)
 
     def producer(amount, wait):
         yield env.timeout(wait)
@@ -25,8 +26,9 @@ def test_pool(env):
     env.run()
 
 
-def test_pool2(env):
-    pool = Pool(env, capacity=2)
+@pytest.mark.parametrize('PoolClass', [Pool, PriorityPool])
+def test_pool2(env, PoolClass):
+    pool = PoolClass(env, capacity=2)
 
     def proc(env, pool):
         assert pool.is_empty
@@ -99,8 +101,9 @@ def test_pool2(env):
     env.run()
 
 
-def test_pool_overflow(env):
-    pool = Pool(env, capacity=5, hard_cap=True)
+@pytest.mark.parametrize('PoolClass', [Pool, PriorityPool])
+def test_pool_overflow(env, PoolClass):
+    pool = PoolClass(env, capacity=5, hard_cap=True)
 
     def producer(env):
         yield env.timeout(1)
@@ -114,8 +117,9 @@ def test_pool_overflow(env):
     env.run()
 
 
-def test_pool_put_zero(env):
-    pool = Pool(env, capacity=5, hard_cap=True)
+@pytest.mark.parametrize('PoolClass', [Pool, PriorityPool])
+def test_pool_put_zero(env, PoolClass):
+    pool = PoolClass(env, capacity=5, hard_cap=True)
 
     def producer(env):
         with raises(ValueError):
@@ -125,8 +129,9 @@ def test_pool_put_zero(env):
     env.run()
 
 
-def test_pool_get_zero(env):
-    pool = Pool(env, capacity=5, hard_cap=True)
+@pytest.mark.parametrize('PoolClass', [Pool, PriorityPool])
+def test_pool_get_zero(env, PoolClass):
+    pool = PoolClass(env, capacity=5, hard_cap=True)
 
     def consumer(env):
         with raises(ValueError):
@@ -136,7 +141,8 @@ def test_pool_get_zero(env):
     env.run()
 
 
-def test_pool_get_too_many(env):
+@pytest.mark.parametrize('PoolClass', [Pool, PriorityPool])
+def test_pool_get_too_many(env, PoolClass):
     def producer(env, pool):
         yield pool.put(1)
         yield env.timeout(1)
@@ -148,14 +154,15 @@ def test_pool_get_too_many(env):
         with raises(ValueError):
             yield pool.get(pool.capacity + 1)
 
-    pool = Pool(env, capacity=6, name='foo')
+    pool = PoolClass(env, capacity=6, name='foo')
     env.process(producer(env, pool))
     env.process(consumer(env, pool))
     env.run()
 
 
-def test_pool_put_too_many(env):
-    pool = Pool(env, capacity=6)
+@pytest.mark.parametrize('PoolClass', [Pool, PriorityPool])
+def test_pool_put_too_many(env, PoolClass):
+    pool = PoolClass(env, capacity=6)
 
     def proc(env):
         with raises(ValueError):
@@ -165,8 +172,9 @@ def test_pool_put_too_many(env):
     env.run()
 
 
-def test_pool_cancel(env):
-    pool = Pool(env, capacity=2)
+@pytest.mark.parametrize('PoolClass', [Pool, PriorityPool])
+def test_pool_cancel(env, PoolClass):
+    pool = PoolClass(env, capacity=2)
 
     def proc(env):
         get_ev = pool.get(2)
@@ -207,6 +215,43 @@ def test_pool_cancel(env):
     env.run()
 
 
-def test_pool_check_str(env):
-    pool = Pool(env, name='bar', capacity=5)
-    assert str(pool) == "Pool(name='bar' level=0 capacity=5)"
+@pytest.mark.parametrize('PoolClass', [Pool, PriorityPool])
+def test_pool_check_str(env, PoolClass):
+    pool = PoolClass(env, name='bar', capacity=5)
+    assert str(pool) == "{}(name='bar' level=0 capacity=5)".format(
+        PoolClass.__name__
+    )
+
+
+def test_priority_pool(env):
+    pool = PriorityPool(env)
+
+    def producer(env, pool):
+        for _ in range(10):
+            yield env.timeout(1)
+            yield pool.put(1)
+
+    def consumer(get_event):
+        yield get_event
+
+    get1_p1_a = env.process(consumer(pool.get(1, priority=1)))
+    get1_p1_b = env.process(consumer(pool.get(1, priority=1)))
+    get5_p0 = env.process(consumer(pool.get(5, priority=0)))
+    get4_p0 = env.process(consumer(pool.get(4, priority=0)))
+
+    env.process(producer(env, pool))
+
+    env.run(until=5.1)
+    assert get5_p0.triggered
+    assert not get4_p0.triggered
+    assert not get1_p1_a.triggered
+    assert not get1_p1_b.triggered
+
+    env.run(until=9.1)
+    assert get4_p0.triggered
+    assert not get1_p1_a.triggered
+    assert not get1_p1_b.triggered
+
+    env.run(until=10.1)
+    assert get1_p1_a.triggered
+    assert not get1_p1_b.triggered
