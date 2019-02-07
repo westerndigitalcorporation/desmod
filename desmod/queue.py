@@ -16,11 +16,16 @@ from simpy import Event
 from simpy.core import BoundClass
 
 
-class QueueEvent(Event):
-    def __init__(self, queue):
-        super(QueueEvent, self).__init__(queue.env)
+class QueuePutEvent(Event):
+    def __init__(self, queue, item):
+        super(QueuePutEvent, self).__init__(queue.env)
         self.queue = queue
-        queue._waiters.setdefault(type(self), []).append(self)
+        self.item = item
+        queue._put_waiters.append(self)
+        self.callbacks.extend(
+            [queue._trigger_when_at_least, queue._trigger_get]
+        )
+        queue._trigger_put()
 
     def __enter__(self):
         return self
@@ -30,57 +35,102 @@ class QueueEvent(Event):
 
     def cancel(self):
         if not self.triggered:
-            self.queue._waiters[type(self)].remove(self)
+            self.queue._put_waiters.remove(self)
             self.callbacks = None
 
 
-class QueuePutEvent(QueueEvent):
-    def __init__(self, queue, item):
-        self.item = item
-        super(QueuePutEvent, self).__init__(queue)
-        self.callbacks.extend(
-            [
-                queue._trigger_when_full,
-                queue._trigger_when_new,
-                queue._trigger_when_any,
-                queue._trigger_get,
-            ]
-        )
-        queue._trigger_put()
-
-
-class QueueGetEvent(QueueEvent):
+class QueueGetEvent(Event):
     def __init__(self, queue):
-        super(QueueGetEvent, self).__init__(queue)
+        super(QueueGetEvent, self).__init__(queue.env)
+        self.queue = queue
+        queue._get_waiters.append(self)
         self.callbacks.extend(
-            [
-                queue._trigger_when_not_full,
-                queue._trigger_put,
-            ]
+            [queue._trigger_when_at_most, queue._trigger_put]
         )
         queue._trigger_get()
 
+    def __enter__(self):
+        return self
 
-class QueueWhenNewEvent(QueueEvent):
-    pass
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.cancel()
+
+    def cancel(self):
+        if not self.triggered:
+            self.queue._get_waiters.remove(self)
+            self.callbacks = None
 
 
-class QueueWhenAnyEvent(QueueEvent):
+class QueueWhenAtMostEvent(Event):
+    def __init__(self, queue, num_items):
+        super(QueueWhenAtMostEvent, self).__init__(queue.env)
+        self.queue = queue
+        self.num_items = num_items
+        heappush(queue._at_most_waiters, self)
+        queue._trigger_when_at_most()
+
+    def __lt__(self, other):
+        return self.num_items > other.num_items
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.cancel()
+
+    def cancel(self):
+        if not self.triggered:
+            self.queue._at_most_waiters.remove(self)
+            heapify(self.queue._at_most_waiters)
+            self.callbacks = None
+
+
+class QueueWhenAtLeastEvent(Event):
+    def __init__(self, queue, num_items):
+        super(QueueWhenAtLeastEvent, self).__init__(queue.env)
+        self.queue = queue
+        self.num_items = num_items
+        heappush(queue._at_least_waiters, self)
+        queue._trigger_when_at_least()
+
+    def __lt__(self, other):
+        return self.num_items < other.num_items
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.cancel()
+
+    def cancel(self):
+        if not self.triggered:
+            self.queue._at_least_waiters.remove(self)
+            heapify(self.queue._at_least_waiters)
+            self.callbacks = None
+
+
+class QueueWhenAnyEvent(QueueWhenAtLeastEvent):
     def __init__(self, queue):
-        super(QueueWhenAnyEvent, self).__init__(queue)
-        queue._trigger_when_any()
+        super(QueueWhenAnyEvent, self).__init__(queue, num_items=1)
 
 
-class QueueWhenFullEvent(QueueEvent):
+class QueueWhenFullEvent(QueueWhenAtLeastEvent):
     def __init__(self, queue):
-        super(QueueWhenFullEvent, self).__init__(queue)
-        queue._trigger_when_full()
+        super(QueueWhenFullEvent, self).__init__(
+            queue, num_items=queue.capacity
+        )
 
 
-class QueueWhenNotFullEvent(QueueEvent):
+class QueueWhenNotFullEvent(QueueWhenAtMostEvent):
     def __init__(self, queue):
-        super(QueueWhenNotFullEvent, self).__init__(queue)
-        queue._trigger_when_not_full()
+        super(QueueWhenNotFullEvent, self).__init__(
+            queue, num_items=queue.capacity - 1
+        )
+
+
+class QueueWhenEmptyEvent(QueueWhenAtMostEvent):
+    def __init__(self, queue):
+        super(QueueWhenEmptyEvent, self).__init__(queue, num_items=0)
 
 
 class Queue(object):
@@ -109,7 +159,10 @@ class Queue(object):
         self._hard_cap = hard_cap
         self.items = list(items)
         self.name = name
-        self._waiters = {}
+        self._put_waiters = []
+        self._get_waiters = []
+        self._at_most_waiters = []
+        self._at_least_waiters = []
         self._put_hook = None
         self._get_hook = None
         BoundClass.bind_early(self)
@@ -144,8 +197,11 @@ class Queue(object):
     #: Dequeue an item from the queue.
     get = BoundClass(QueueGetEvent)
 
-    #: Return an event triggered when a new item is put into the queue.
-    when_new = BoundClass(QueueWhenNewEvent)
+    #: Return an event triggered when the queue has at least n items.
+    when_at_least = BoundClass(QueueWhenAtLeastEvent)
+
+    #: Return an event triggered when the queue has at most n items.
+    when_at_most = BoundClass(QueueWhenAtMostEvent)
 
     #: Return an event triggered when the queue is non-empty.
     when_any = BoundClass(QueueWhenAnyEvent)
@@ -156,6 +212,9 @@ class Queue(object):
     #: Return an event triggered when the queue becomes not full.
     when_not_full = BoundClass(QueueWhenNotFullEvent)
 
+    #: Return an event triggered when the queue becomes empty.
+    when_empty = BoundClass(QueueWhenEmptyEvent)
+
     def _enqueue_item(self, item):
         self.items.append(item)
 
@@ -163,10 +222,9 @@ class Queue(object):
         return self.items.pop(0)
 
     def _trigger_put(self, _=None):
-        waiters = self._waiters.get(QueuePutEvent)
-        while waiters:
+        while self._put_waiters:
             if len(self.items) < self.capacity:
-                put_ev = waiters.pop(0)
+                put_ev = self._put_waiters.pop(0)
                 self._enqueue_item(put_ev.item)
                 put_ev.succeed()
                 if self._put_hook:
@@ -177,41 +235,28 @@ class Queue(object):
                 break
 
     def _trigger_get(self, _=None):
-        waiters = self._waiters.get(QueueGetEvent)
-        while waiters and self.items:
-            get_ev = waiters.pop(0)
+        while self._get_waiters and self.items:
+            get_ev = self._get_waiters.pop(0)
             item = self._dequeue_item()
             get_ev.succeed(item)
             if self._get_hook:
                 self._get_hook()
 
-    def _trigger_when_new(self, _=None):
-        waiters = self._waiters.get(QueueWhenNewEvent)
-        if waiters:
-            for when_new_ev in waiters:
-                when_new_ev.succeed()
-            del waiters[:]
+    def _trigger_when_at_least(self, _=None):
+        while (
+            self._at_least_waiters
+            and self.size >= self._at_least_waiters[0].num_items
+        ):
+            when_at_least_ev = heappop(self._at_least_waiters)
+            when_at_least_ev.succeed()
 
-    def _trigger_when_any(self, _=None):
-        waiters = self._waiters.get(QueueWhenAnyEvent)
-        if waiters and self.items:
-            for when_any_ev in waiters:
-                when_any_ev.succeed()
-            del waiters[:]
-
-    def _trigger_when_full(self, _=None):
-        waiters = self._waiters.get(QueueWhenFullEvent)
-        if waiters and self.is_full:
-            for when_full_ev in waiters:
-                when_full_ev.succeed()
-            del waiters[:]
-
-    def _trigger_when_not_full(self, _=None):
-        waiters = self._waiters.get(QueueWhenNotFullEvent)
-        if waiters and not self.is_full:
-            for when_not_full_ev in waiters:
-                when_not_full_ev.succeed()
-            del waiters[:]
+    def _trigger_when_at_most(self, _=None):
+        while (
+            self._at_most_waiters
+            and self.size <= self._at_most_waiters[0].num_items
+        ):
+            at_most_ev = heappop(self._at_most_waiters)
+            at_most_ev.succeed()
 
     def __repr__(self):
         return (

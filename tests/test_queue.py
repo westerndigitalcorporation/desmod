@@ -47,23 +47,6 @@ def test_queue_overflow(env):
     env.run()
 
 
-def test_queue_when_new(env):
-    def proc(env, queue):
-        when_new = queue.when_new()
-        assert not when_new.triggered
-        yield queue.put(1)
-        assert when_new.triggered
-
-        when_new = [queue.when_new() for _ in range(3)]
-        assert not any(ev.triggered for ev in when_new)
-        yield queue.put(1)
-        assert all(ev.triggered for ev in when_new)
-
-    queue = Queue(env)
-    env.process(proc(env, queue))
-    env.run()
-
-
 def test_mq_when_full(env):
     queue = Queue(env, capacity=2)
     result = []
@@ -150,6 +133,105 @@ def test_when_not_full(env):
     env.run()
 
 
+def test_when_empty(env):
+    def proc(env, queue):
+        yield queue.when_empty()
+        assert env.now == 0
+
+        yield queue.put('a')
+        yield queue.put('b')
+
+        with queue.when_empty() as when_empty_ev:
+            assert not when_empty_ev.triggered
+            yield env.timeout(1)
+            item = yield queue.get()
+            assert item == 'a'
+            assert not when_empty_ev.triggered
+
+        with queue.when_empty() as when_empty_ev:
+            assert not when_empty_ev.triggered
+            yield env.timeout(1)
+            with queue.get() as get_ev:
+                item = yield get_ev
+                assert item == 'b'
+            assert when_empty_ev.triggered
+            yield when_empty_ev
+
+    env.process(proc(env, Queue(env)))
+    env.run()
+
+
+def test_when_at_most(env):
+    def proc(env, queue):
+        for item in 'abc':
+            with queue.put(item) as put_ev:
+                yield put_ev
+
+        at_most = {}
+        at_most[0] = queue.when_at_most(0)
+        at_most[3] = queue.when_at_most(3)
+        at_most[1] = queue.when_at_most(1)
+        at_most[2] = queue.when_at_most(2)
+        assert not at_most[0].triggered
+        assert not at_most[1].triggered
+        assert not at_most[2].triggered
+        assert at_most[3].triggered
+
+        item = yield queue.get()
+        assert item == 'a'
+        assert not at_most[0].triggered
+        assert not at_most[1].triggered
+        assert at_most[2].triggered
+
+        item = yield queue.get()
+        assert item == 'b'
+        assert not at_most[0].triggered
+        assert at_most[1].triggered
+
+        item = yield queue.get()
+        assert item == 'c'
+        assert at_most[0].triggered
+
+    env.process(proc(env, Queue(env)))
+    env.run()
+
+
+def test_when_at_least(env):
+    def proc(env, queue):
+        at_least = {}
+        at_least[3] = queue.when_at_least(3)
+        at_least[0] = queue.when_at_least(0)
+        at_least[2] = queue.when_at_least(2)
+        at_least[1] = queue.when_at_least(1)
+        assert at_least[0].triggered
+        assert not at_least[1].triggered
+        assert not at_least[2].triggered
+        assert not at_least[3].triggered
+
+        yield queue.put('a')
+        assert at_least[1].triggered
+        assert not at_least[2].triggered
+        assert not at_least[3].triggered
+
+        yield queue.get()
+        assert not at_least[2].triggered
+        assert not at_least[3].triggered
+
+        yield queue.put('b')
+        assert not at_least[2].triggered
+        assert not at_least[3].triggered
+
+        yield queue.put('c')
+        assert at_least[2].triggered
+        assert not at_least[3].triggered
+
+        yield queue.put('d')
+        assert at_least[3].triggered
+
+    env.process(proc(env, Queue(env)))
+    env.run()
+
+
 def test_queue_cancel(env):
     queue = Queue(env, capacity=2)
 
@@ -182,17 +264,13 @@ def test_queue_cancel(env):
         with queue.when_full() as when_full:
             yield when_full
 
-        put_ev = queue.put(1)
-        new_ev = queue.when_new()
-        not_full_ev = queue.when_not_full()
+        with queue.put(1) as put_ev:
+            not_full_ev = queue.when_not_full()
 
-        yield env.timeout(1)
+            yield env.timeout(1)
 
-        assert not put_ev.triggered
-        assert not new_ev.triggered
-        assert not not_full_ev.triggered
-        put_ev.cancel()
-        new_ev.cancel()
+            assert not put_ev.triggered
+            assert not not_full_ev.triggered
         not_full_ev.cancel()
 
         yield env.timeout(100)
@@ -201,7 +279,6 @@ def test_queue_cancel(env):
         assert not any_ev.triggered
         assert not put_ev.triggered
         assert not put_ev.triggered
-        assert not new_ev.triggered
         assert not not_full_ev.triggered
 
     env.process(producer(env))

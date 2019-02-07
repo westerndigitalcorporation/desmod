@@ -5,12 +5,7 @@
 .. automodule:: desmod.queue
 
 .. autoclass:: Queue
-   :members: capacity, is_empty, is_full, peek
-
-   .. automethod:: put(item)
-   .. automethod:: get()
-   .. automethod:: when_any()
-   .. automethod:: when_full()
+   :members:
 
 .. autoclass:: PriorityQueue
    :inherited-members:
