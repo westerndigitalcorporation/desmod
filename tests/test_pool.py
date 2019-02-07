@@ -1,6 +1,7 @@
-from desmod.pool import Pool, PriorityPool
 from pytest import raises
 import pytest
+
+from desmod.pool import Pool, PriorityPool
 
 
 @pytest.mark.parametrize('PoolClass', [Pool, PriorityPool])
@@ -42,9 +43,6 @@ def test_pool2(env, PoolClass):
         when_any = pool.when_any()
         assert not when_any.triggered
 
-        when_new = pool.when_new()
-        assert not when_new.triggered
-
         with pool.when_not_full() as when_not_full:
             yield when_not_full
             assert when_not_full.triggered
@@ -62,29 +60,25 @@ def test_pool2(env, PoolClass):
         assert put_one.triggered
 
         assert not when_any.triggered
-        assert not when_new.triggered
         assert not get_two.triggered
         assert not when_full.triggered
         assert pool.level == 1
 
         yield put_one
         assert when_any.triggered
-        assert when_new.triggered
 
         yield env.timeout(1)
 
-        when_full2 = pool.when_full()
-        assert not when_full2.triggered
+        with pool.when_full() as when_full2:
+            assert not when_full2.triggered
 
         put_one = pool.put(1)
         assert put_one.triggered
         assert not when_full.triggered
-        assert not when_full2.triggered
 
         yield put_one
 
         assert when_full.triggered
-        assert when_full2.triggered
         assert get_two.triggered
         assert pool.level == 0
 
@@ -92,6 +86,10 @@ def test_pool2(env, PoolClass):
 
         when_not_full = pool.when_not_full()
         assert not when_not_full.triggered
+
+        with pool.when_any() as when_any2:
+            yield when_any2
+            assert when_any2.triggered
 
         yield pool.get(1)
 
@@ -174,24 +172,27 @@ def test_pool_put_too_many(env, PoolClass):
 
 @pytest.mark.parametrize('PoolClass', [Pool, PriorityPool])
 def test_pool_cancel(env, PoolClass):
-    pool = PoolClass(env, capacity=2)
-
-    def proc(env):
+    def proc(env, pool):
         get_ev = pool.get(2)
         full_ev = pool.when_full()
         any_ev = pool.when_any()
-        new_ev = pool.when_new()
+        empty_ev = pool.when_empty()
+
+        assert not any_ev.triggered
+        assert empty_ev.triggered
 
         yield env.timeout(1)
 
         any_ev.cancel()
-        new_ev.cancel()
 
-        yield pool.put(1)
+        with pool.put(1) as put_ev:
+            yield put_ev
 
         assert not get_ev.triggered
         assert not any_ev.triggered
-        assert not new_ev.triggered
+
+        with pool.when_empty() as empty_ev:
+            assert not empty_ev.triggered
 
         get_ev.cancel()
         full_ev.cancel()
@@ -208,10 +209,81 @@ def test_pool_cancel(env, PoolClass):
         yield env.timeout(1)
         put_ev.cancel()
 
-        yield pool.get(1)
+        with pool.get(1) as get_ev2:
+            yield get_ev2
         assert not put_ev.triggered
 
-    env.process(proc(env))
+    env.process(proc(env, PoolClass(env, capacity=2)))
+    env.run()
+
+
+@pytest.mark.parametrize('PoolClass', [Pool, PriorityPool])
+def test_pool_when_at_most(env, PoolClass):
+    def proc(env, pool):
+        yield pool.put(3)
+        at_most = {}
+        at_most[0] = pool.when_at_most(0)
+        at_most[3] = pool.when_at_most(3)
+        at_most[1] = pool.when_at_most(1)
+        at_most[2] = pool.when_at_most(2)
+        assert not at_most[0].triggered
+        assert not at_most[1].triggered
+        assert not at_most[2].triggered
+        assert at_most[3].triggered
+
+        yield pool.get(1)
+        assert pool.level == 2
+        assert not at_most[0].triggered
+        assert not at_most[1].triggered
+        assert at_most[2].triggered
+
+        yield pool.get(1)
+        assert pool.level == 1
+        assert not at_most[0].triggered
+        assert at_most[1].triggered
+
+        yield pool.get(1)
+        assert pool.level == 0
+        assert at_most[0].triggered
+
+    env.process(proc(env, PoolClass(env)))
+    env.run()
+
+
+@pytest.mark.parametrize('PoolClass', [Pool, PriorityPool])
+def test_when_at_least(env, PoolClass):
+    def proc(env, pool):
+        at_least = {}
+        at_least[3] = pool.when_at_least(3)
+        at_least[0] = pool.when_at_least(0)
+        at_least[2] = pool.when_at_least(2)
+        at_least[1] = pool.when_at_least(1)
+        assert at_least[0].triggered
+        assert not at_least[1].triggered
+        assert not at_least[2].triggered
+        assert not at_least[3].triggered
+
+        yield pool.put(1)
+        assert at_least[1].triggered
+        assert not at_least[2].triggered
+        assert not at_least[3].triggered
+
+        yield pool.get(1)
+        assert not at_least[2].triggered
+        assert not at_least[3].triggered
+
+        yield pool.put(1)
+        assert not at_least[2].triggered
+        assert not at_least[3].triggered
+
+        yield pool.put(1)
+        assert at_least[2].triggered
+        assert not at_least[3].triggered
+
+        yield pool.put(1)
+        assert at_least[3].triggered
+
+    env.process(proc(env, PoolClass(env)))
     env.run()
 
 
@@ -223,7 +295,7 @@ def test_pool_check_str(env, PoolClass):
     )
 
 
-def test_priority_pool(env):
+def test_priority_pool_gets(env):
     pool = PriorityPool(env)
 
     def producer(env, pool):
@@ -255,3 +327,29 @@ def test_priority_pool(env):
     env.run(until=10.1)
     assert get1_p1_a.triggered
     assert not get1_p1_b.triggered
+
+
+def test_priority_pool_puts(env):
+    def proc(env, pool):
+        put_ev = {}
+        put_ev[2] = pool.put(1, priority=2)
+        put_ev[0] = pool.put(1, priority=0)
+        put_ev[1] = pool.put(1, priority=1)
+        assert not put_ev[0].triggered
+        assert not put_ev[1].triggered
+        assert not put_ev[2].triggered
+
+        yield pool.get(1)
+        assert put_ev[0].triggered
+        assert not put_ev[1].triggered
+        assert not put_ev[2].triggered
+
+        yield pool.get(1)
+        assert put_ev[1].triggered
+        assert not put_ev[2].triggered
+
+        yield pool.get(1)
+        assert put_ev[2].triggered
+
+    env.process(proc(env, PriorityPool(env, capacity=2, init=2)))
+    env.run()

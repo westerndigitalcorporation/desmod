@@ -8,17 +8,23 @@ either discrete or continuous depending on whether the put/get amounts are
 `int` or `float`.
 """
 
+from sys import float_info
 import heapq
 
 from simpy import Event
 from simpy.core import BoundClass
 
 
-class PoolEvent(Event):
-    def __init__(self, pool):
-        super(PoolEvent, self).__init__(pool.env)
+class PoolPutEvent(Event):
+    def __init__(self, pool, amount=1):
+        if not (0 < amount <= pool.capacity):
+            raise ValueError('amount must be in (0, capacity]')
+        super(PoolPutEvent, self).__init__(pool.env)
         self.pool = pool
-        pool._waiters.setdefault(type(self), []).append(self)
+        self.amount = amount
+        self.callbacks.extend([pool._trigger_when_at_least, pool._trigger_get])
+        pool._put_waiters.append(self)
+        pool._trigger_put()
 
     def __enter__(self):
         return self
@@ -28,62 +34,101 @@ class PoolEvent(Event):
 
     def cancel(self):
         if not self.triggered:
-            self.pool._waiters[type(self)].remove(self)
+            self.pool._put_waiters.remove(self)
             self.callbacks = None
 
 
-class PoolPutEvent(PoolEvent):
+class PoolGetEvent(Event):
     def __init__(self, pool, amount=1):
         if not (0 < amount <= pool.capacity):
             raise ValueError('amount must be in (0, capacity]')
+        super(PoolGetEvent, self).__init__(pool.env)
+        self.pool = pool
         self.amount = amount
-        super(PoolPutEvent, self).__init__(pool)
-        self.callbacks.extend(
-            [
-                pool._trigger_when_full,
-                pool._trigger_when_new,
-                pool._trigger_when_any,
-                pool._trigger_get,
-            ]
-        )
-        pool._trigger_put()
-
-
-class PoolGetEvent(PoolEvent):
-    def __init__(self, pool, amount=1):
-        if not (0 < amount <= pool.capacity):
-            raise ValueError('amount must be in (0, capacity]')
-        self.amount = amount
-        super(PoolGetEvent, self).__init__(pool)
-        self.callbacks.extend(
-            [
-                pool._trigger_when_not_full,
-                pool._trigger_put,
-            ]
-        )
+        self.callbacks.extend([pool._trigger_when_at_most, pool._trigger_put])
+        pool._get_waiters.append(self)
         pool._trigger_get()
 
+    def __enter__(self):
+        return self
 
-class PoolWhenNewEvent(PoolEvent):
-    pass
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.cancel()
+
+    def cancel(self):
+        if not self.triggered:
+            self.pool._get_waiters.remove(self)
+            self.callbacks = None
 
 
-class PoolWhenAnyEvent(PoolEvent):
+class PoolWhenAtMostEvent(Event):
+    def __init__(self, pool, amount):
+        super(PoolWhenAtMostEvent, self).__init__(pool.env)
+        self.pool = pool
+        self.amount = amount
+        heapq.heappush(pool._at_most_waiters, self)
+        pool._trigger_when_at_most()
+
+    def __lt__(self, other):
+        return self.amount > other.amount
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.cancel()
+
+    def cancel(self):
+        if not self.triggered:
+            self.pool._at_most_waiters.remove(self)
+            heapq.heapify(self.pool._at_most_waiters)
+            self.callbacks = None
+
+
+class PoolWhenAtLeastEvent(Event):
+    def __init__(self, pool, amount):
+        super(PoolWhenAtLeastEvent, self).__init__(pool.env)
+        self.pool = pool
+        self.amount = amount
+        heapq.heappush(pool._at_least_waiters, self)
+        pool._trigger_when_at_least()
+
+    def __lt__(self, other):
+        return self.amount < other.amount
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.cancel()
+
+    def cancel(self):
+        if not self.triggered:
+            self.pool._at_least_waiters.remove(self)
+            heapq.heapify(self.pool._at_least_waiters)
+            self.callbacks = None
+
+
+class PoolWhenAnyEvent(PoolWhenAtLeastEvent):
+    def __init__(self, pool, epsilon=float_info.epsilon):
+        super(PoolWhenAnyEvent, self).__init__(pool, amount=epsilon)
+
+
+class PoolWhenFullEvent(PoolWhenAtLeastEvent):
     def __init__(self, pool):
-        super(PoolWhenAnyEvent, self).__init__(pool)
-        pool._trigger_when_any()
+        super(PoolWhenFullEvent, self).__init__(pool, amount=pool.capacity)
 
 
-class PoolWhenFullEvent(PoolEvent):
+class PoolWhenNotFullEvent(PoolWhenAtMostEvent):
+    def __init__(self, pool, epsilon=float_info.epsilon):
+        super(PoolWhenNotFullEvent, self).__init__(
+            pool, amount=pool.capacity - epsilon
+        )
+
+
+class PoolWhenEmptyEvent(PoolWhenAtMostEvent):
     def __init__(self, pool):
-        super(PoolWhenFullEvent, self).__init__(pool)
-        pool._trigger_when_full()
-
-
-class PoolWhenNotFullEvent(PoolEvent):
-    def __init__(self, pool):
-        super(PoolWhenNotFullEvent, self).__init__(pool)
-        pool._trigger_when_not_full()
+        super(PoolWhenEmptyEvent, self).__init__(pool, amount=0)
 
 
 class Pool(object):
@@ -114,7 +159,10 @@ class Pool(object):
         self.level = init
         self._hard_cap = hard_cap
         self.name = name
-        self._waiters = {}
+        self._put_waiters = []
+        self._get_waiters = []
+        self._at_most_waiters = []
+        self._at_least_waiters = []
         self._put_hook = None
         self._get_hook = None
         BoundClass.bind_early(self)
@@ -140,11 +188,14 @@ class Pool(object):
     #: Get amount from the pool.
     get = BoundClass(PoolGetEvent)
 
+    #: Return and event triggered when the pool has at least `amount` items.
+    when_at_least = BoundClass(PoolWhenAtLeastEvent)
+
+    #: Return and event triggered when the pool has at most `amount` items.
+    when_at_most = BoundClass(PoolWhenAtMostEvent)
+
     #: Return an event triggered when the pool is non-empty.
     when_any = BoundClass(PoolWhenAnyEvent)
-
-    #: Return an event triggered when items are put in pool
-    when_new = BoundClass(PoolWhenNewEvent)
 
     #: Return an event triggered when the pool becomes full.
     when_full = BoundClass(PoolWhenFullEvent)
@@ -152,13 +203,15 @@ class Pool(object):
     #: Return an event triggered when the pool becomes not full.
     when_not_full = BoundClass(PoolWhenNotFullEvent)
 
+    #: Return an event triggered when the pool becomes empty.
+    when_empty = BoundClass(PoolWhenEmptyEvent)
+
     def _trigger_put(self, _=None):
-        waiters = self._waiters.get(PoolPutEvent)
         idx = 0
-        while waiters and idx < len(waiters):
-            put_ev = waiters[idx]
+        while self._put_waiters and idx < len(self._put_waiters):
+            put_ev = self._put_waiters[idx]
             if self.capacity - self.level >= put_ev.amount:
-                waiters.pop(idx)
+                self._put_waiters.pop(idx)
                 self.level += put_ev.amount
                 put_ev.succeed()
                 if self._put_hook:
@@ -169,12 +222,11 @@ class Pool(object):
                 idx += 1
 
     def _trigger_get(self, _=None):
-        waiters = self._waiters.get(PoolGetEvent)
         idx = 0
-        while waiters and idx < len(waiters):
-            get_ev = waiters[idx]
+        while self._get_waiters and idx < len(self._get_waiters):
+            get_ev = self._get_waiters[idx]
             if get_ev.amount <= self.level:
-                waiters.pop(idx)
+                self._get_waiters.pop(idx)
                 self.level -= get_ev.amount
                 get_ev.succeed(get_ev.amount)
                 if self._get_hook:
@@ -182,33 +234,21 @@ class Pool(object):
             else:
                 idx += 1
 
-    def _trigger_when_new(self, _=None):
-        waiters = self._waiters.get(PoolWhenNewEvent)
-        if waiters:
-            for when_new_ev in waiters:
-                when_new_ev.succeed()
-            del waiters[:]
+    def _trigger_when_at_least(self, _=None):
+        while (
+            self._at_least_waiters
+            and self.level >= self._at_least_waiters[0].amount
+        ):
+            when_at_least_ev = heapq.heappop(self._at_least_waiters)
+            when_at_least_ev.succeed()
 
-    def _trigger_when_any(self, _=None):
-        waiters = self._waiters.get(PoolWhenAnyEvent)
-        if waiters and self.level:
-            for when_any_ev in waiters:
-                when_any_ev.succeed()
-            del waiters[:]
-
-    def _trigger_when_full(self, _=None):
-        waiters = self._waiters.get(PoolWhenFullEvent)
-        if waiters and self.level >= self.capacity:
-            for when_full_ev in waiters:
-                when_full_ev.succeed()
-            del waiters[:]
-
-    def _trigger_when_not_full(self, _=None):
-        waiters = self._waiters.get(PoolWhenNotFullEvent)
-        if waiters and self.level < self.capacity:
-            for when_not_full_ev in waiters:
-                when_not_full_ev.succeed()
-            del waiters[:]
+    def _trigger_when_at_most(self, _=None):
+        while (
+            self._at_most_waiters
+            and self.level <= self._at_most_waiters[0].amount
+        ):
+            at_most_ev = heapq.heappop(self._at_most_waiters)
+            at_most_ev.succeed()
 
     def __repr__(self):
         return (
@@ -217,14 +257,18 @@ class Pool(object):
         ).format(self)
 
 
-class PriorityPoolEvent(Event):
-    def __init__(self, pool, priority):
-        super(PriorityPoolEvent, self).__init__(pool.env)
+class PriorityPoolPutEvent(Event):
+    def __init__(self, pool, amount=1, priority=0):
+        if not (0 < amount <= pool.capacity):
+            raise ValueError('amount must be in (0, capacity]')
+        super(PriorityPoolPutEvent, self).__init__(pool.env)
         self.pool = pool
+        self.amount = amount
         self.key = priority, pool._event_count
         pool._event_count += 1
-        waiters = pool._waiters.setdefault(type(self), [])
-        heapq.heappush(waiters, self)
+        self.callbacks.extend([pool._trigger_when_at_least, pool._trigger_get])
+        heapq.heappush(pool._put_waiters, self)
+        pool._trigger_put()
 
     def __lt__(self, other):
         return self.key < other.key
@@ -237,42 +281,38 @@ class PriorityPoolEvent(Event):
 
     def cancel(self):
         if not self.triggered:
-            waiters = self.pool._waiters[type(self)]
-            waiters.remove(self)
-            heapq.heapify(waiters)
+            self.pool._put_waiters.remove(self)
+            heapq.heapify(self.pool._put_waiters)
             self.callbacks = None
 
 
-class PriorityPoolPutEvent(PriorityPoolEvent):
+class PriorityPoolGetEvent(Event):
     def __init__(self, pool, amount=1, priority=0):
         if not (0 < amount <= pool.capacity):
             raise ValueError('amount must be in (0, capacity]')
+        super(PriorityPoolGetEvent, self).__init__(pool.env)
+        self.pool = pool
         self.amount = amount
-        super(PriorityPoolPutEvent, self).__init__(pool, priority)
-        self.callbacks.extend(
-            [
-                pool._trigger_when_full,
-                pool._trigger_when_new,
-                pool._trigger_when_any,
-                pool._trigger_get,
-            ]
-        )
-        pool._trigger_put()
-
-
-class PriorityPoolGetEvent(PriorityPoolEvent):
-    def __init__(self, pool, amount=1, priority=0):
-        if not (0 < amount <= pool.capacity):
-            raise ValueError('amount must be in (0, capacity]')
-        self.amount = amount
-        super(PriorityPoolGetEvent, self).__init__(pool, priority)
-        self.callbacks.extend(
-            [
-                pool._trigger_when_not_full,
-                pool._trigger_put,
-            ]
-        )
+        self.key = priority, pool._event_count
+        pool._event_count += 1
+        self.callbacks.extend([pool._trigger_when_at_most, pool._trigger_put])
+        heapq.heappush(pool._get_waiters, self)
         pool._trigger_get()
+
+    def __lt__(self, other):
+        return self.key < other.key
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.cancel()
+
+    def cancel(self):
+        if not self.triggered:
+            self.pool._get_waiters.remove(self)
+            heapq.heapify(self.pool._get_waiters)
+            self.callbacks = None
 
 
 class PriorityPool(Pool):
@@ -297,11 +337,10 @@ class PriorityPool(Pool):
     get = BoundClass(PriorityPoolGetEvent)
 
     def _trigger_put(self, _=None):
-        waiters = self._waiters.get(PriorityPoolPutEvent)
-        while waiters:
-            put_ev = waiters[0]
+        while self._put_waiters:
+            put_ev = self._put_waiters[0]
             if self.capacity - self.level >= put_ev.amount:
-                heapq.heappop(waiters)
+                heapq.heappop(self._put_waiters)
                 self.level += put_ev.amount
                 put_ev.succeed()
                 if self._put_hook:
@@ -312,11 +351,10 @@ class PriorityPool(Pool):
                 break
 
     def _trigger_get(self, _=None):
-        waiters = self._waiters.get(PriorityPoolGetEvent)
-        while waiters:
-            get_ev = waiters[0]
+        while self._get_waiters:
+            get_ev = self._get_waiters[0]
             if get_ev.amount <= self.level:
-                heapq.heappop(waiters)
+                heapq.heappop(self._get_waiters)
                 self.level -= get_ev.amount
                 get_ev.succeed(get_ev.amount)
                 if self._get_hook:

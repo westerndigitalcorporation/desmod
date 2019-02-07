@@ -1,8 +1,8 @@
+import pytest
+
+from desmod.pool import Pool, PriorityPool
 from desmod.probe import attach
 from desmod.queue import Queue
-from desmod.pool import Pool
-
-import pytest
 import simpy
 
 
@@ -137,9 +137,10 @@ def test_attach_queue_remaining(env):
     assert values == [9, 8, 7, 8]
 
 
-def test_attach_pool_level(env):
+@pytest.mark.parametrize('PoolClass', [Pool, PriorityPool])
+def test_attach_pool_level(env, PoolClass):
     values = []
-    pool = Pool(env)
+    pool = PoolClass(env)
     attach('scope', pool, [values.append])
 
     def proc():
@@ -154,9 +155,10 @@ def test_attach_pool_level(env):
     assert values == [1, 2, 3, 2]
 
 
-def test_attach_pool_remaining(env):
+@pytest.mark.parametrize('PoolClass', [Pool, PriorityPool])
+def test_attach_pool_remaining(env, PoolClass):
     values = []
-    pool = Pool(env, capacity=10)
+    pool = PoolClass(env, capacity=10)
 
     attach('scope', pool, [values.append], trace_remaining=True)
 
