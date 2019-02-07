@@ -12,5 +12,6 @@ functions.
    desmod.config
    desmod.component
    desmod.dot
+   desmod.pool
    desmod.queue
    desmod.simulation

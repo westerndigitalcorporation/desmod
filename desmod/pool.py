@@ -1,9 +1,11 @@
 """Pool class for modeling a container of resources.
 
-A pool models a container of items or resources. Pool is similar to the :class:
-`simpy.resources.Container`, but with additional events when the Container is
-empty or full. Users can put or get items in the pool with a certain amount as
-a parameter.
+A pool models a container of homogeneous resources, similar to
+:class:`simpy.resources.Container`, but with additional events when the
+container is empty or full. Resources are :func:`Pool.put` or :func:`Pool.get`
+to/from the pool in specified amounts. The pool's resources may be modeled as
+either discrete or continuous depending on whether the put/get amounts are
+`int` or `float`.
 """
 
 import heapq
