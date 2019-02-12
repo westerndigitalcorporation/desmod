@@ -40,5 +40,5 @@ config:
   tanker.travel_time: 100
 sim.exception: null
 sim.now: 500.0
-sim.runtime: 0.027634931000648066
+sim.runtime: 0.039155590000000004
 sim.time: 500

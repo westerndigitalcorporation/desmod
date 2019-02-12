@@ -15,13 +15,15 @@ This example demonstrates core desmod concepts including:
 
 """
 from __future__ import division
+
 from itertools import count, cycle
 
 from desmod.component import Component
 from desmod.dot import generate_dot
+from desmod.pool import Pool
 from desmod.queue import Queue
 from desmod.simulation import simulate
-from simpy import Container, Resource
+from simpy import Resource
 
 
 class Top(Component):
@@ -109,11 +111,10 @@ class TankerTruck(Component):
         self.pump_rate = self.env.config.get('tanker.pump_rate', 10)
         self.avg_travel = self.env.config.get('tanker.travel_time', 600)
         tank_capacity = self.env.config.get('tanker.capacity', 200)
-        self.tank = Container(self.env, tank_capacity)
+        self.tank = Pool(self.env, tank_capacity)
 
-        # This auto_probe() call causes the self.tank Container to be
-        # monkey-patched such that whenever it's level changes, the new level
-        # is noted in the log.
+        # This auto_probe() call uses the self.tank Pool get/put hooks so that
+        # whenever it's level changes, the new level is noted in the log.
         self.auto_probe('tank', log={})
 
         # The parent TankerCompany enqueues instructions to this queue.
@@ -180,12 +181,13 @@ class GasStation(Component):
         self.arrival_interval = config.get('gas_station.arrival_interval', 60)
 
         station_capacity = config.get('gas_station.capacity', 200)
-        self.reservoir = Container(self.env,
-                                   capacity=station_capacity,
-                                   init=station_capacity)
+        self.reservoir = Pool(
+            self.env, capacity=station_capacity, init=station_capacity
+        )
         self.auto_probe('reservoir', log={})
 
-        self.threshold_pct = config.get('gas_station.threshold_pct', 10)
+        threshold_pct = config.get('gas_station.threshold_pct', 10)
+        self.reservoir_low_water = threshold_pct * station_capacity / 100
 
         self.pump_rate = config.get('gas_station.pump_rate', 2)
         num_pumps = config.get('gas_station.pumps', 2)
@@ -212,11 +214,10 @@ class GasStation(Component):
 
         """
         while True:
-            yield self.env.timeout(10)
-            if self.reservoir_pct < self.threshold_pct:
-                done_event = self.env.event()
-                yield self.tanker_company.request_truck(self, done_event)
-                yield done_event
+            yield self.reservoir.when_at_most(self.reservoir_low_water)
+            done_event = self.env.event()
+            yield self.tanker_company.request_truck(self, done_event)
+            yield done_event
 
     def _traffic_generator(self):
         """Model the sporadic arrival of cars to the gas station."""

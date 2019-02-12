@@ -47,55 +47,76 @@ INFO    180.874 s: station0        : car4 awaiting pump
 INFO    180.874 s: station0        : car4 at pump
 INFO    182.106 s: station2        : car5 awaiting pump
 INFO    182.106 s: station2        : car5 at pump
+INFO    185.606 s: tankerco        : dispatching truck0 to station2
+INFO    185.606 s: tankerco.truck0 : traveling to station2
 INFO    187.343 s: station0        : car5 awaiting pump
 INFO    187.343 s: station0        : car5 at pump
 INFO    188.209 s: station2        : car6 awaiting pump
 INFO    188.209 s: station2        : car6 at pump
-INFO    190.000 s: tankerco        : dispatching truck0 to station2
-INFO    190.000 s: tankerco.truck0 : traveling to station2
+INFO    195.843 s: tankerco        : dispatching truck1 to station0
+INFO    195.843 s: tankerco.truck1 : traveling to station0
 INFO    197.374 s: station0        : car4 pumped 33L in 16s
-INFO    200.000 s: tankerco        : dispatching truck1 to station0
-INFO    200.000 s: tankerco.truck1 : traveling to station0
-INFO    203.333 s: tankerco.truck0 : arrived at station2
-INFO    210.433 s: station2        : car5 pumped 34L in 28s
-INFO    213.533 s: station2        : car6 pumped 28L in 25s
-INFO    223.333 s: tankerco.truck0 : done pumping
-INFO    223.333 s: tankerco.truck0 : going for refill
-INFO    231.541 s: tankerco.truck0 : refilling
-INFO    242.882 s: station0        : car6 awaiting pump
-INFO    242.882 s: station0        : car6 at pump
-INFO    251.541 s: tankerco.truck0 : refilled 200L in 20s
-INFO    263.700 s: station0        : car7 awaiting pump
-INFO    266.710 s: station2        : car7 awaiting pump
-INFO    266.710 s: station2        : car7 at pump
-INFO    280.210 s: station2        : car7 pumped 27L in 14s
-INFO    321.522 s: station0        : car8 awaiting pump
-INFO    334.335 s: station0        : car9 awaiting pump
-INFO    338.661 s: station0        : car10 awaiting pump
+INFO    202.843 s: station0        : car5 pumped 31L in 16s
+INFO    204.051 s: tankerco.truck1 : arrived at station0
+INFO    223.651 s: tankerco.truck1 : done pumping
+INFO    234.311 s: station2        : car7 awaiting pump
+INFO    255.130 s: station2        : car8 awaiting pump
+INFO    278.171 s: tankerco.truck0 : arrived at station2
+INFO    285.271 s: station2        : car5 pumped 34L in 103s
+INFO    285.271 s: station2        : car7 at pump
+INFO    286.087 s: station0        : car6 awaiting pump
+INFO    286.087 s: station0        : car6 at pump
+INFO    290.871 s: station2        : car6 pumped 33L in 103s
+INFO    290.871 s: station2        : car8 at pump
+INFO    298.171 s: tankerco.truck0 : done pumping
+INFO    298.171 s: tankerco.truck0 : going for refill
+INFO    302.271 s: station2        : car7 pumped 34L in 17s
+INFO    307.587 s: station0        : car6 pumped 43L in 22s
+INFO    312.871 s: station2        : car8 pumped 44L in 22s
+INFO    314.565 s: station2        : car9 awaiting pump
+INFO    314.565 s: station2        : car9 at pump
+INFO    336.065 s: station2        : car9 pumped 43L in 22s
+INFO    337.760 s: station0        : car7 awaiting pump
+INFO    337.760 s: station0        : car7 at pump
 INFO    350.399 s: station1        : car4 awaiting pump
 INFO    350.399 s: station1        : car4 at pump
-INFO    371.899 s: station1        : car4 pumped 43L in 22s
-INFO    385.412 s: station2        : car8 awaiting pump
-INFO    385.412 s: station2        : car8 at pump
-INFO    403.613 s: station0        : car11 awaiting pump
-INFO    406.412 s: station2        : car8 pumped 42L in 21s
-INFO    432.307 s: station0        : car12 awaiting pump
-INFO    439.385 s: station1        : car5 awaiting pump
-INFO    439.385 s: station1        : car5 at pump
-INFO    450.000 s: tankerco        : dispatching truck0 to station1
-INFO    450.000 s: tankerco.truck0 : traveling to station1
-INFO    455.484 s: tankerco.truck1 : arrived at station0
-INFO    460.084 s: station0        : car5 pumped 44L in 273s
-INFO    460.084 s: station0        : car7 at pump
-INFO    468.184 s: station0        : car6 pumped 25L in 225s
-INFO    468.184 s: station0        : car8 at pump
-INFO    468.551 s: station0        : car13 awaiting pump
-INFO    475.484 s: tankerco.truck1 : done pumping
-INFO    475.484 s: tankerco.truck1 : going for refill
-INFO    479.584 s: station0        : car7 pumped 39L in 20s
-INFO    479.584 s: station0        : car9 at pump
-INFO    486.684 s: station0        : car8 pumped 37L in 18s
-INFO    486.684 s: station0        : car10 at pump
-INFO    496.232 s: tankerco.truck0 : arrived at station1
-INFO    499.684 s: station0        : car10 pumped 26L in 13s
-INFO    499.684 s: station0        : car11 at pump
+INFO    358.760 s: station0        : car7 pumped 42L in 21s
+INFO    365.899 s: station1        : car4 pumped 31L in 16s
+INFO    379.093 s: station1        : car5 awaiting pump
+INFO    379.093 s: station1        : car5 at pump
+INFO    386.093 s: tankerco        : dispatching truck0 to station1
+INFO    396.093 s: station1        : car5 pumped 34L in 17s
+INFO    403.551 s: station2        : car10 awaiting pump
+INFO    403.551 s: station2        : car10 at pump
+INFO    406.424 s: tankerco.truck0 : refilling
+INFO    413.051 s: tankerco        : dispatching truck1 to station2
+INFO    413.051 s: tankerco.truck1 : traveling to station2
+INFO    414.202 s: station2        : car11 awaiting pump
+INFO    414.202 s: station2        : car11 at pump
+INFO    426.424 s: tankerco.truck0 : refilled 200L in 20s
+INFO    426.424 s: tankerco.truck0 : traveling to station1
+INFO    432.837 s: station2        : car12 awaiting pump
+INFO    433.832 s: tankerco.truck0 : arrived at station1
+INFO    436.561 s: tankerco.truck1 : arrived at station2
+INFO    436.961 s: tankerco.truck1 : done pumping
+INFO    436.961 s: tankerco.truck1 : going for refill
+INFO    436.961 s: tankerco        : dispatching truck0 to station2
+INFO    439.677 s: station1        : car6 awaiting pump
+INFO    439.677 s: station1        : car6 at pump
+INFO    453.753 s: station0        : car8 awaiting pump
+INFO    453.753 s: station0        : car8 at pump
+INFO    453.832 s: tankerco.truck0 : done pumping
+INFO    453.832 s: tankerco.truck0 : going for refill
+INFO    455.177 s: station1        : car6 pumped 31L in 16s
+INFO    456.524 s: station1        : car7 awaiting pump
+INFO    456.524 s: station1        : car7 at pump
+INFO    466.253 s: station0        : car8 pumped 25L in 12s
+INFO    471.402 s: station1        : car8 awaiting pump
+INFO    471.402 s: station1        : car8 at pump
+INFO    474.024 s: station1        : car7 pumped 35L in 18s
+INFO    482.382 s: station0        : car9 awaiting pump
+INFO    482.382 s: station0        : car9 at pump
+INFO    493.305 s: station2        : car13 awaiting pump
+INFO    493.402 s: station1        : car8 pumped 44L in 22s
+INFO    497.990 s: station0        : car10 awaiting pump
+INFO    497.990 s: station0        : car10 at pump
