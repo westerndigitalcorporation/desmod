@@ -1,6 +1,15 @@
 Changelog
 =========
 
+desmod-0.5.6 (2019-02-12)
+-------------------------
+* [NEW] PriorityPool for prioritized get/put requests
+* [NEW] Queue.when_at_most() and when_at_least() events (#18)
+* [NEW] Pool.when_at_most() and when_at_least() events (#18)
+* [CHANGE] Remove Queue.when_new() event
+* [CHANGE] Gas station example uses Pool/Pool.when_at_most() (#18)
+* [FIX] Add API docs for desmod.pool
+
 desmod-0.5.5 (2018-12-19)
 -------------------------
 * [NEW] Add Queue.when_not_full() and Pool.when_not_full()
