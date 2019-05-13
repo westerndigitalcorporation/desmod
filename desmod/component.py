@@ -275,6 +275,23 @@ class Component(object):
         """
         pass
 
+    def post_fail(self):
+        """Recursively run post-fail hooks."""
+        for child in self._children:
+            child.post_fail()
+        self.post_sim_fail_hook()
+
+    def post_sim_fail_hook(self):
+        """Hook called after simulation fails.
+
+        Component subclasses may override `post_sim_fail_hook()` to inject
+        behavior in case the simulation fails. Note that
+        `post_sim_fail_hook()` will not be called when simulation is
+        successful. Instead, :meth:`post_sim_hook` method will be called.
+
+        """
+        pass
+
     def post_simulate(self):
         """Recursively run post-simulation hooks."""
         for child in self._children:
