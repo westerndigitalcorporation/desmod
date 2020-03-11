@@ -456,8 +456,8 @@ def test_sim_json_result(config):
 
 
 @pytest.mark.parametrize('ext, parser', [
-    ('yaml', yaml.load),
-    ('yml', yaml.load),
+    ('yaml', yaml.safe_load),
+    ('yml', yaml.safe_load),
     ('json', json.load),
     ('py', lambda f: eval(f.read())),
 ])
