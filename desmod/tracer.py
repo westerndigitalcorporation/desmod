@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import os
 import re
 import sqlite3
@@ -16,7 +14,7 @@ from .timescale import parse_time, scale_time
 from .util import partial_format
 
 
-class Tracer(object):
+class Tracer:
 
     name = ''
 
@@ -337,7 +335,7 @@ class SQLiteTracer(Tracer):
         return trace_callback
 
 
-class TraceManager(object):
+class TraceManager:
 
     def __init__(self, env):
         self.tracers = []

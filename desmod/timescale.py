@@ -1,5 +1,3 @@
-from __future__ import division
-
 import re
 
 _unit_map = {'s': 1e0,

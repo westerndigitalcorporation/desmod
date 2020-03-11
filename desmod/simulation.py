@@ -1,7 +1,5 @@
 """Simulation model with batteries included."""
 
-from __future__ import division
-
 from contextlib import closing
 from multiprocessing import Process, Queue, cpu_count
 from pprint import pprint
@@ -12,9 +10,7 @@ import random
 import shutil
 import timeit
 
-from six.moves import filter
 import simpy
-import six
 import yaml
 
 from desmod.config import factorial_config
@@ -54,10 +50,7 @@ class SimEnvironment(simpy.Environment):
         #: :class:`random.Random`.
         self.rand = random.Random()
         seed = config.setdefault('sim.seed', None)
-        if six.PY3:
-            self.rand.seed(seed, version=1)
-        else:
-            self.rand.seed(seed)
+        self.rand.seed(seed, version=1)
 
         timescale_str = self.config.setdefault('sim.timescale', '1 s')
 
@@ -125,7 +118,7 @@ class SimStopEvent(simpy.Event):
         self.t_stop = self.env.now + delay
 
 
-class _Workspace(object):
+class _Workspace:
     """Context manager for workspace directory management."""
     def __init__(self, config):
         self.workspace = config.setdefault('meta.sim.workspace',

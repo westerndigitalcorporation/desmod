@@ -131,7 +131,7 @@ class PoolWhenEmptyEvent(PoolWhenAtMostEvent):
         super(PoolWhenEmptyEvent, self).__init__(pool, amount=0)
 
 
-class Pool(object):
+class Pool:
     """Simulation pool of discrete or continuous resources.
 
     `Pool` is similar to :class:`simpy.resources.Container`.

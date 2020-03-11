@@ -1,7 +1,7 @@
+from functools import wraps
 import types
 
 import simpy
-import six
 
 from desmod.pool import Pool
 from desmod.queue import Queue
@@ -36,7 +36,7 @@ def attach(scope, target, callbacks, **hints):
 
 def _attach_method(method, callbacks):
     def make_wrapper(func):
-        @six.wraps(func)
+        @wraps(func)
         def wrapper(*args, **kwargs):
             value = func(*args, **kwargs)
             for callback in callbacks:
@@ -44,13 +44,12 @@ def _attach_method(method, callbacks):
             return value
         return wrapper
 
-    setattr(six.get_method_self(method), method.__func__.__name__,
-            make_wrapper(method))
+    setattr(method.__self__, method.__func__.__name__, make_wrapper(method))
 
 
 def _attach_container_level(container, callbacks):
     def make_wrapper(func):
-        @six.wraps(func)
+        @wraps(func)
         def wrapper(*args, **kwargs):
             old_level = container._level
             ret = func(*args, **kwargs)
@@ -67,7 +66,7 @@ def _attach_container_level(container, callbacks):
 
 def _attach_store_items(store, callbacks):
     def make_wrapper(func):
-        @six.wraps(func)
+        @wraps(func)
         def wrapper(*args, **kwargs):
             old_items = len(store.items)
             ret = func(*args, **kwargs)
@@ -84,7 +83,7 @@ def _attach_store_items(store, callbacks):
 
 def _attach_resource_users(resource, callbacks):
     def make_wrapper(func):
-        @six.wraps(func)
+        @wraps(func)
         def wrapper(*args, **kwargs):
             old_users = len(resource.users)
             ret = func(*args, **kwargs)
@@ -101,7 +100,7 @@ def _attach_resource_users(resource, callbacks):
 
 def _attach_resource_queue(resource, callbacks):
     def make_wrapper(func):
-        @six.wraps(func)
+        @wraps(func)
         def wrapper(*args, **kwargs):
             old_queue = len(resource.queue)
             ret = func(*args, **kwargs)

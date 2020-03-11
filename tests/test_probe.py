@@ -20,7 +20,7 @@ def test_attach_bad_type(env):
 def test_attach_method():
     values = []
 
-    class C(object):
+    class C:
         def __init__(self):
             self.x = 0
 

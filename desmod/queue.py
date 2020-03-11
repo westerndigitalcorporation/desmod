@@ -133,7 +133,7 @@ class QueueWhenEmptyEvent(QueueWhenAtMostEvent):
         super(QueueWhenEmptyEvent, self).__init__(queue, num_items=0)
 
 
-class Queue(object):
+class Queue:
     """Simulation queue of arbitrary items.
 
     `Queue` is similar to :class:`simpy.Store`. It provides a simulation-aware

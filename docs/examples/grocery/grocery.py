@@ -11,8 +11,6 @@ estimating bagger, checkout lane, and cashier resources needed for various
 customer profiles.
 
 """
-from __future__ import division
-
 from argparse import ArgumentParser
 from datetime import timedelta
 from functools import partial

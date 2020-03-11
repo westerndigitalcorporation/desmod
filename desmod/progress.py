@@ -1,6 +1,3 @@
-from __future__ import division, print_function
-
-from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 import sys
@@ -249,7 +246,7 @@ def _consume_multi_display_multi_pbar(progress_queue, num_workers,
     overall_pbar = _get_overall_pbar(num_simulations, max_width, fd)
 
     try:
-        worker_progress = OrderedDict()
+        worker_progress = {}
         completed = set()
         while len(completed) < num_simulations:
             sim_index, now, t_stop, timescale = progress_queue.get()

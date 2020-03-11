@@ -68,7 +68,7 @@ class ConnectError(Exception):
     pass
 
 
-class Component(object):
+class Component:
     """Building block for composing models.
 
     This class is meant to be subclassed. Component subclasses must declare

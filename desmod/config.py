@@ -24,16 +24,10 @@ for configuring a model.
 
 """
 from collections import namedtuple
+from collections.abc import Sequence
 from copy import deepcopy
 from itertools import product
-
-from six.moves import builtins, zip
-import six
-
-try:
-    from collections.abc import Sequence
-except ImportError:
-    from collections import Sequence
+import builtins
 
 
 class ConfigError(Exception):
@@ -50,7 +44,7 @@ class NamedConfig(namedtuple('NamedConfig',
     """
 
 
-class NamedManager(object):
+class NamedManager:
     """Manage named configuration groups.
 
     Any number of named configuration groups can be specified using the
@@ -104,7 +98,7 @@ class NamedManager(object):
 
     def __iter__(self):
         """Iterate named config tuples."""
-        return six.itervalues(self._named_configs)
+        yield from self._named_configs.values()
 
 
 def apply_user_config(config, user_config):
@@ -358,7 +352,7 @@ def _safe_eval(expr, coerce_type=None, eval_locals=None):
     try:
         value = eval(expr, {'__builtins__': None}, eval_locals)
     except BaseException:
-        if coerce_type and issubclass(coerce_type, six.string_types):
+        if coerce_type and issubclass(coerce_type, str):
             value = expr
         else:
             raise ConfigError(
