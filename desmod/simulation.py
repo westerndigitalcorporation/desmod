@@ -41,6 +41,7 @@ class SimEnvironment(simpy.Environment):
     :param dict config: A fully-initialized configuration dictionary.
 
     """
+
     def __init__(self, config):
         super(SimEnvironment, self).__init__()
         #: The configuration dictionary.
@@ -105,6 +106,7 @@ class SimStopEvent(simpy.Event):
     simulation time.
 
     """
+
     def __init__(self, env):
         super(SimStopEvent, self).__init__(env)
         self.t_stop = None
@@ -120,10 +122,11 @@ class SimStopEvent(simpy.Event):
 
 class _Workspace:
     """Context manager for workspace directory management."""
+
     def __init__(self, config):
-        self.workspace = config.setdefault('meta.sim.workspace',
-                                           config.setdefault('sim.workspace',
-                                                             os.curdir))
+        self.workspace = config.setdefault(
+            'meta.sim.workspace', config.setdefault('sim.workspace', os.curdir)
+        )
         self.overwrite = config.setdefault('sim.workspace.overwrite', False)
         self.prev_dir = os.getcwd()
 
@@ -140,8 +143,13 @@ class _Workspace:
         os.chdir(self.prev_dir)
 
 
-def simulate(config, top_type, env_type=SimEnvironment, reraise=True,
-             progress_manager=standalone_progress_manager):
+def simulate(
+    config,
+    top_type,
+    env_type=SimEnvironment,
+    reraise=True,
+    progress_manager=standalone_progress_manager,
+):
     """Initialize, elaborate, and run a simulation.
 
      All exceptions are caught by `simulate()` so they can be logged and
@@ -201,8 +209,14 @@ def simulate(config, top_type, env_type=SimEnvironment, reraise=True,
     return result
 
 
-def simulate_factors(base_config, factors, top_type,
-                     env_type=SimEnvironment, jobs=None, config_filter=None):
+def simulate_factors(
+    base_config,
+    factors,
+    top_type,
+    env_type=SimEnvironment,
+    jobs=None,
+    config_filter=None,
+):
     """Run multi-factor simulations in separate processes.
 
     The `factors` are used to compose specialized config dictionaries for the
@@ -253,8 +267,9 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
     if jobs is not None and jobs < 1:
         raise ValueError('Invalid number of jobs: {}'.format(jobs))
 
-    progress_enable = any(config.setdefault('sim.progress.enable', False)
-                          for config in configs)
+    progress_enable = any(
+        config.setdefault('sim.progress.enable', False) for config in configs
+    )
 
     progress_queue = Queue() if progress_enable else None
     result_queue = Queue()
@@ -263,13 +278,13 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
     workspaces = set()
     max_width = 0
     for index, config in enumerate(configs):
-        max_width = max(config.setdefault('sim.progress.max_width', 0),
-                        max_width)
+        max_width = max(config.setdefault('sim.progress.max_width', 0), max_width)
 
         workspace = os.path.normpath(
-            config.setdefault('meta.sim.workspace',
-                              config.setdefault('sim.workspace',
-                                                os.curdir)))
+            config.setdefault(
+                'meta.sim.workspace', config.setdefault('sim.workspace', os.curdir)
+            )
+        )
         if workspace in workspaces:
             raise ValueError('Duplicate workspace: {}'.format(workspace))
         workspaces.add(workspace)
@@ -284,11 +299,19 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
 
     workers = []
     for i in range(num_workers):
-        worker = Process(name='sim-worker-{}'.format(i),
-                         target=_simulate_worker,
-                         args=(top_type, env_type, False, progress_queue,
-                               config_queue, result_queue))
-        worker.daemon = True    # Workers die if main process dies.
+        worker = Process(
+            name='sim-worker-{}'.format(i),
+            target=_simulate_worker,
+            args=(
+                top_type,
+                env_type,
+                False,
+                progress_queue,
+                config_queue,
+                result_queue,
+            ),
+        )
+        worker.daemon = True  # Workers die if main process dies.
         worker.start()
         workers.append(worker)
         config_queue.put(None)  # A stop sentinel for each worker.
@@ -296,7 +319,8 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
     if progress_enable:
         progress_thread = Thread(
             target=consume_multi_progress,
-            args=(progress_queue, num_workers, len(configs), max_width))
+            args=(progress_queue, num_workers, len(configs), max_width),
+        )
         progress_thread.daemon = True
         progress_thread.start()
 
@@ -315,15 +339,15 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
     return sorted(results, key=lambda r: r['config']['meta.sim.index'])
 
 
-def _simulate_worker(top_type, env_type, reraise, progress_queue, config_queue,
-                     result_queue):
+def _simulate_worker(
+    top_type, env_type, reraise, progress_queue, config_queue, result_queue
+):
     progress_manager = get_multi_progress_manager(progress_queue)
     while True:
         config = config_queue.get()
         if config is None:
             break
-        result = simulate(config, top_type, env_type, reraise,
-                          progress_manager)
+        result = simulate(config, top_type, env_type, reraise, progress_manager)
         result_queue.put(result)
 
 

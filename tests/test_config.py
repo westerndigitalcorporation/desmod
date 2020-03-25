@@ -17,12 +17,14 @@ from desmod.config import (
 
 @pytest.fixture
 def config():
-    return {'foo.bar.baz': 17,
-            'foo.bar.biz': 1.23,
-            'abc.def.baz': False,
-            'a.b.c': 'something',
-            'd.e.f': [3, 2, 1],
-            'g.h.i': {'a': 1, 'b': 2}}
+    return {
+        'foo.bar.baz': 17,
+        'foo.bar.biz': 1.23,
+        'abc.def.baz': False,
+        'a.b.c': 'something',
+        'd.e.f': [3, 2, 1],
+        'g.h.i': {'a': 1, 'b': 2},
+    }
 
 
 @pytest.fixture
@@ -46,8 +48,7 @@ def test_named_resolve(named_mgr):
     named_mgr.name('qqq', ['zzz'])
     assert named_mgr.resolve('qqq') == {'w': 0, 'x': 1, 'y': 2, 'z': 3}
 
-    assert set(nc.name for nc in named_mgr) == {'www', 'xxx', 'yyy', 'zzz',
-                                                'qqq'}
+    assert set(nc.name for nc in named_mgr) == {'www', 'xxx', 'yyy', 'zzz', 'qqq'}
     for nc in named_mgr:
         if nc.name == 'xxx':
             assert nc.category == 'thing' and nc.doc == 'documentation'
@@ -55,23 +56,28 @@ def test_named_resolve(named_mgr):
             assert not nc.category and not nc.doc
 
 
-@pytest.mark.parametrize('fuzzy_key, expected', [
-    ('foo', ConfigError),
-    ('b.foo', ('a.b.foo', 1)),
-    ('d.foo', ('c.d.foo', 3)),
-    ('bar', ('a.b.bar', 2)),
-    ('o', ('e.f.o', 4)),
-    ('.o', ('e.f.o', 4)),
-    ('x.y.z', ('x.y.z', 5)),
-    ('y.z', ConfigError),
-])
+@pytest.mark.parametrize(
+    'fuzzy_key, expected',
+    [
+        ('foo', ConfigError),
+        ('b.foo', ('a.b.foo', 1)),
+        ('d.foo', ('c.d.foo', 3)),
+        ('bar', ('a.b.bar', 2)),
+        ('o', ('e.f.o', 4)),
+        ('.o', ('e.f.o', 4)),
+        ('x.y.z', ('x.y.z', 5)),
+        ('y.z', ConfigError),
+    ],
+)
 def test_fuzzy_lookup(fuzzy_key, expected):
-    config = {'a.b.foo': 1,
-              'a.b.bar': 2,
-              'c.d.foo': 3,
-              'e.f.o': 4,
-              'x.y.z': 5,
-              'w.x.y.z': 6}
+    config = {
+        'a.b.foo': 1,
+        'a.b.bar': 2,
+        'c.d.foo': 3,
+        'e.f.o': 4,
+        'x.y.z': 5,
+        'w.x.y.z': 6,
+    }
     if isinstance(expected, type) and issubclass(expected, Exception):
         with pytest.raises(expected):
             fuzzy_lookup(config, fuzzy_key)
@@ -80,11 +86,9 @@ def test_fuzzy_lookup(fuzzy_key, expected):
 
 
 def test_user_override(config):
-    apply_user_overrides(config, [
-        ('biz', '12'),
-        ('e.f', 'range(4)'),
-        ('g.h.i', 'zip("abc", range(3))'),
-    ])
+    apply_user_overrides(
+        config, [('biz', '12'), ('e.f', 'range(4)'), ('g.h.i', 'zip("abc", range(3))')]
+    )
     assert config['foo.bar.biz'] == 12.0
     assert config['d.e.f'] == [0, 1, 2, 3]
     assert config['g.h.i'] == {'a': 0, 'b': 1, 'c': 2}
@@ -156,8 +160,9 @@ def test_user_config_bad_value(config):
         apply_user_config(config, user_config)
 
 
-@pytest.mark.skipif(hasattr(sys, 'pypy_version_info'),
-                    reason="PyPy's eval() mishandles locals dict")
+@pytest.mark.skipif(
+    hasattr(sys, 'pypy_version_info'), reason="PyPy's eval() mishandles locals dict"
+)
 def test_safe_eval_str_builtin_alias():
     assert _safe_eval('oct', str) == 'oct'
     assert _safe_eval('oct') is oct
@@ -171,15 +176,17 @@ def test_safe_eval_dict():
         _safe_eval('oct', coerce_type=dict)
 
 
-@pytest.mark.parametrize('user_keys, user_exprs, expected', [
-    ('foo', '1,2,3', [['a.b.foo'], [[1], [2], [3]]]),
-    ('bar', '1.2, 3, 4.5', [['a.b.bar'], [[1.2], [3.0], [4.5]]]),
-    ('b.baz', '"abc"', [['a.b.baz'], [['a'], ['b'], ['c']]]),
-    ('b.baz', '"abc","def"', [['a.b.baz'], [['abc'], ['def']]]),
-    ('d.baz', '1, "y", 0', [['c.d.baz'], [[True], [True], [False]]]),
-    ('foo,bar', '(1,1),(2,2)', [['a.b.foo', 'a.b.bar'],
-                                [[1, 1.0], [2, 2.0]]]),
-])
+@pytest.mark.parametrize(
+    'user_keys, user_exprs, expected',
+    [
+        ('foo', '1,2,3', [['a.b.foo'], [[1], [2], [3]]]),
+        ('bar', '1.2, 3, 4.5', [['a.b.bar'], [[1.2], [3.0], [4.5]]]),
+        ('b.baz', '"abc"', [['a.b.baz'], [['a'], ['b'], ['c']]]),
+        ('b.baz', '"abc","def"', [['a.b.baz'], [['abc'], ['def']]]),
+        ('d.baz', '1, "y", 0', [['c.d.baz'], [[True], [True], [False]]]),
+        ('foo,bar', '(1,1),(2,2)', [['a.b.foo', 'a.b.bar'], [[1, 1.0], [2, 2.0]]]),
+    ],
+)
 def test_parse_user_factor(user_keys, user_exprs, expected):
     config = {
         'a.b.foo': 1,
@@ -190,8 +197,10 @@ def test_parse_user_factor(user_keys, user_exprs, expected):
 
     factor = parse_user_factor(config, user_keys, user_exprs)
     assert expected == factor
-    assert all(isinstance(value, type(expected_value))
-               for value, expected_value in zip(factor[1], expected[1]))
+    assert all(
+        isinstance(value, type(expected_value))
+        for value, expected_value in zip(factor[1], expected[1])
+    )
 
 
 def test_parse_user_factors(config):
@@ -202,8 +211,7 @@ def test_parse_user_factors(config):
         'c.d.baz': True,
     }
 
-    user_factors = [['foo', '1,2,3'],
-                    ['bar', '2.0, 4.0']]
+    user_factors = [['foo', '1,2,3'], ['bar', '2.0, 4.0']]
 
     factors = parse_user_factors(config, user_factors)
 
@@ -211,11 +219,14 @@ def test_parse_user_factors(config):
     assert factors[1] == [['a.b.bar'], [[2.0], [4.0]]]
 
 
-@pytest.mark.parametrize('user_keys, user_exprs, err_str', [
-    ('baz', 'True, False', 'ambiguous'),
-    ('foo', '"one", "two"', 'coerce'),
-    ('foo', '1', 'sequence'),
-])
+@pytest.mark.parametrize(
+    'user_keys, user_exprs, err_str',
+    [
+        ('baz', 'True, False', 'ambiguous'),
+        ('foo', '"one", "two"', 'coerce'),
+        ('foo', '1', 'sequence'),
+    ],
+)
 def test_parse_user_factor_invalid(user_keys, user_exprs, err_str):
     config = {
         'a.b.foo': 1,
@@ -235,12 +246,14 @@ def test_factorial_config():
         (['k2'], [[4], [5], [6]]),
     ]
 
-    expected = [{'k0': 0, 'k1': 1, 'k2': 4},
-                {'k0': 0, 'k1': 1, 'k2': 5},
-                {'k0': 0, 'k1': 1, 'k2': 6},
-                {'k0': 2, 'k1': 3, 'k2': 4},
-                {'k0': 2, 'k1': 3, 'k2': 5},
-                {'k0': 2, 'k1': 3, 'k2': 6}]
+    expected = [
+        {'k0': 0, 'k1': 1, 'k2': 4},
+        {'k0': 0, 'k1': 1, 'k2': 5},
+        {'k0': 0, 'k1': 1, 'k2': 6},
+        {'k0': 2, 'k1': 3, 'k2': 4},
+        {'k0': 2, 'k1': 3, 'k2': 5},
+        {'k0': 2, 'k1': 3, 'k2': 6},
+    ]
 
     assert list(factorial_config({}, factors)) == expected
 
@@ -252,18 +265,13 @@ def test_factorial_config_special():
     ]
 
     expected = [
-        {'k0': 0, 'k1': 1, 'k2': 4, 'special': [
-            ['k0', 0], ['k1', 1], ['k2', 4]]},
-        {'k0': 0, 'k1': 1, 'k2': 5, 'special': [
-            ['k0', 0], ['k1', 1], ['k2', 5]]},
-        {'k0': 0, 'k1': 1, 'k2': 6, 'special': [
-            ['k0', 0], ['k1', 1], ['k2', 6]]},
-        {'k0': 2, 'k1': 3, 'k2': 4, 'special': [
-            ['k0', 2], ['k1', 3], ['k2', 4]]},
-        {'k0': 2, 'k1': 3, 'k2': 5, 'special': [
-            ['k0', 2], ['k1', 3], ['k2', 5]]},
-        {'k0': 2, 'k1': 3, 'k2': 6, 'special': [
-            ['k0', 2], ['k1', 3], ['k2', 6]]}]
+        {'k0': 0, 'k1': 1, 'k2': 4, 'special': [['k0', 0], ['k1', 1], ['k2', 4]]},
+        {'k0': 0, 'k1': 1, 'k2': 5, 'special': [['k0', 0], ['k1', 1], ['k2', 5]]},
+        {'k0': 0, 'k1': 1, 'k2': 6, 'special': [['k0', 0], ['k1', 1], ['k2', 6]]},
+        {'k0': 2, 'k1': 3, 'k2': 4, 'special': [['k0', 2], ['k1', 3], ['k2', 4]]},
+        {'k0': 2, 'k1': 3, 'k2': 5, 'special': [['k0', 2], ['k1', 3], ['k2', 5]]},
+        {'k0': 2, 'k1': 3, 'k2': 6, 'special': [['k0', 2], ['k1', 3], ['k2', 6]]},
+    ]
 
     fc = factorial_config({}, factors, 'special')
     assert list(fc) == expected

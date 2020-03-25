@@ -93,8 +93,9 @@ class Component:
         self.env = parent.env if env is None else env
 
         #: The component name (str).
-        self.name = ((self.base_name if name is None else name) +
-                     ('' if index is None else str(index)))
+        self.name = (self.base_name if name is None else name) + (
+            '' if index is None else str(index)
+        )
 
         #: Index of Component instance within group of sibling instances.
         #: Will be None for un-grouped Components.
@@ -117,16 +118,20 @@ class Component:
 
         #: Log an error message.
         self.error = self.env.tracemgr.get_trace_function(
-            self.scope, log={'level': 'ERROR'})
+            self.scope, log={'level': 'ERROR'}
+        )
         #: Log a warning message.
         self.warn = self.env.tracemgr.get_trace_function(
-            self.scope, log={'level': 'WARNING'})
+            self.scope, log={'level': 'WARNING'}
+        )
         #: Log an informative message.
         self.info = self.env.tracemgr.get_trace_function(
-            self.scope, log={'level': 'INFO'})
+            self.scope, log={'level': 'INFO'}
+        )
         #: Log a debug message.
         self.debug = self.env.tracemgr.get_trace_function(
-            self.scope, log={'level': 'DEBUG'})
+            self.scope, log={'level': 'DEBUG'}
+        )
 
     def add_process(self, process_func, *args, **kwargs):
         """Add a process method to be run at simulation-time.
@@ -164,8 +169,9 @@ class Component:
         """
         self._not_connected.update(connection_names)
 
-    def connect(self, dst, dst_connection, src=None, src_connection=None,
-                conn_obj=None):
+    def connect(
+        self, dst, dst_connection, src=None, src_connection=None, conn_obj=None
+    ):
         """Assign connection object from source to destination component.
 
         At elaboration-time, Components must call `connect()` to make the
@@ -203,16 +209,19 @@ class Component:
             else:
                 raise ConnectError(
                     'src "{}" (class {}) does not have attr "{}"'.format(
-                        src.scope, type(src).__name__, src_connection))
+                        src.scope, type(src).__name__, src_connection
+                    )
+                )
         if dst_connection in dst._not_connected:
             setattr(dst, dst_connection, conn_obj)
             dst._not_connected.remove(dst_connection)
-            dst._connections.append(
-                (dst_connection, src, src_connection, conn_obj))
+            dst._connections.append((dst_connection, src, src_connection, conn_obj))
         else:
             raise ConnectError(
                 'dst "{}" (class {}) does not declare connection "{}"'.format(
-                    dst.scope, type(dst).__name__, dst_connection))
+                    dst.scope, type(dst).__name__, dst_connection
+                )
+            )
 
     def connect_children(self):
         """Make connections for descendant components.
@@ -225,7 +234,8 @@ class Component:
         if any(child._not_connected for child in self._children):
             raise ConnectError(
                 '{0} has unconnected children; implement '
-                '{0}.connect_children()'.format(type(self).__name__))
+                '{0}.connect_children()'.format(type(self).__name__)
+            )
 
     def auto_probe(self, name, target=None, **hints):
         if target is None:
@@ -259,8 +269,11 @@ class Component:
         self.connect_children()
         for child in self._children:
             if child._not_connected:
-                raise ConnectError('{scope}.{conn_name} not connected'.format(
-                    scope=child.scope, conn_name=child._not_connected.pop()))
+                raise ConnectError(
+                    '{scope}.{conn_name} not connected'.format(
+                        scope=child.scope, conn_name=child._not_connected.pop()
+                    )
+                )
             child.elaborate()
         for proc, args, kwargs in self._processes:
             self.env.process(proc(*args, **kwargs))

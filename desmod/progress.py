@@ -34,8 +34,14 @@ def standalone_progress_manager(env):
             try:
                 yield None
             finally:
-                _print_progress(env.sim_index, env.now, env.now, env.timescale,
-                                end='\n', fd=sys.stderr)
+                _print_progress(
+                    env.sim_index,
+                    env.now,
+                    env.now,
+                    env.timescale,
+                    end='\n',
+                    fd=sys.stderr,
+                )
     else:
         yield None
 
@@ -79,8 +85,10 @@ def _get_standalone_pbar(env, max_width, fd):
         fd=fd,
         min_value=0,
         max_value=progressbar.UnknownLength,
-        widgets=_get_progressbar_widgets(env.sim_index, env.timescale,
-                                         know_stop_time=False))
+        widgets=_get_progressbar_widgets(
+            env.sim_index, env.timescale, know_stop_time=False
+        ),
+    )
 
     if max_width and pbar.term_width > max_width:
         pbar.term_width = max_width
@@ -94,8 +102,9 @@ def _standalone_pbar_process(env, pbar, period_s):
         sim_index, now, t_stop, timescale = env.get_progress()
         if t_stop and pbar.max_value != t_stop:
             pbar.max_value = t_stop
-            pbar.widgets = _get_progressbar_widgets(sim_index, timescale,
-                                                    know_stop_time=True)
+            pbar.widgets = _get_progressbar_widgets(
+                sim_index, timescale, know_stop_time=True
+            )
         pbar.update(now)
         t0 = timeit.default_timer()
         yield env.timeout(interval)
@@ -133,13 +142,11 @@ def get_multi_progress_manager(progress_queue):
     def progress_producer(env):
         if progress_queue:
             period_s = _get_interval_period_s(env.config)
-            env.process(
-                _progress_enqueue_process(env, period_s, progress_queue))
+            env.process(_progress_enqueue_process(env, period_s, progress_queue))
             try:
                 yield None
             finally:
-                progress_queue.put((env.sim_index, env.now, env.now,
-                                    env.timescale))
+                progress_queue.put((env.sim_index, env.now, env.now, env.timescale))
         else:
             yield None
 
@@ -156,32 +163,33 @@ def _progress_enqueue_process(env, period_s, progress_queue):
         interval *= period_s / (t1 - t0)
 
 
-def consume_multi_progress(progress_queue, num_workers, num_simulations,
-                           max_width):
+def consume_multi_progress(progress_queue, num_workers, num_simulations, max_width):
     fd = sys.stderr
     try:
         if fd.isatty():
             if progressbar and colorama:
                 _consume_multi_display_multi_pbar(
-                    progress_queue, num_workers, num_simulations, max_width,
-                    fd)
+                    progress_queue, num_workers, num_simulations, max_width, fd
+                )
             elif progressbar:
                 _consume_multi_display_single_pbar(
-                    progress_queue, num_workers, num_simulations, max_width,
-                    fd)
+                    progress_queue, num_workers, num_simulations, max_width, fd
+                )
             else:
                 _consume_multi_display_simple(
-                    progress_queue, num_workers, num_simulations, max_width,
-                    fd)
+                    progress_queue, num_workers, num_simulations, max_width, fd
+                )
         else:
             _consume_multi_display_simple(
-                progress_queue, num_workers, num_simulations, max_width, fd)
+                progress_queue, num_workers, num_simulations, max_width, fd
+            )
     except KeyboardInterrupt:
         pass
 
 
-def _consume_multi_display_simple(progress_queue, num_workers, num_simulations,
-                                  max_width, fd):
+def _consume_multi_display_simple(
+    progress_queue, num_workers, num_simulations, max_width, fd
+):
     start_date = datetime.now()
     isatty = fd.isatty()
     end = '\r' if isatty else '\n'
@@ -209,15 +217,22 @@ def _consume_multi_display_simple(progress_queue, num_workers, num_simulations,
 def _print_simple(num_completed, num_simulations, td, end, fd):
     if fd.closed:
         return
-    print(timedelta(td.days, td.seconds),
-          num_completed, 'of', num_simulations, 'simulations',
-          '({:.0%})'.format(num_completed / num_simulations),
-          end=end, file=fd)
+    print(
+        timedelta(td.days, td.seconds),
+        num_completed,
+        'of',
+        num_simulations,
+        'simulations',
+        '({:.0%})'.format(num_completed / num_simulations),
+        end=end,
+        file=fd,
+    )
     fd.flush()
 
 
-def _consume_multi_display_single_pbar(progress_queue, num_workers,
-                                       num_simulations, max_width, fd):
+def _consume_multi_display_single_pbar(
+    progress_queue, num_workers, num_simulations, max_width, fd
+):
     overall_pbar = _get_overall_pbar(num_simulations, max_width, fd=fd)
     try:
         completed = set()
@@ -230,8 +245,9 @@ def _consume_multi_display_single_pbar(progress_queue, num_workers,
         overall_pbar.finish()
 
 
-def _consume_multi_display_multi_pbar(progress_queue, num_workers,
-                                      num_simulations, max_width, fd):
+def _consume_multi_display_multi_pbar(
+    progress_queue, num_workers, num_simulations, max_width, fd
+):
     # In order to display multiple progress bars, we need to manipulate the
     # terminal/console to move up lines. Colorama is used to wrap stderr such
     # that ANSI escape sequences are mapped to equivalent win32 API calls.
@@ -267,7 +283,8 @@ def _consume_multi_display_multi_pbar(progress_queue, num_workers,
                             if t_stop and pbar.max_value != t_stop:
                                 pbar.max_value = t_stop
                                 pbar.widgets = _get_progressbar_widgets(
-                                    sim_index, timescale, know_stop_time=True)
+                                    sim_index, timescale, know_stop_time=True
+                                )
                             pbar.update(now)
                             print(file=fd)
                     else:
@@ -282,11 +299,11 @@ def _consume_multi_display_multi_pbar(progress_queue, num_workers,
                     fd=fd,
                     term_width=overall_pbar.term_width,
                     min_value=0,
-                    max_value=(progressbar.UnknownLength
-                               if t_stop is None else t_stop),
+                    max_value=(progressbar.UnknownLength if t_stop is None else t_stop),
                     widgets=_get_progressbar_widgets(
-                        sim_index, timescale,
-                        know_stop_time=t_stop is not None))
+                        sim_index, timescale, know_stop_time=t_stop is not None
+                    ),
+                )
                 worker_progress[sim_index] = pbar
 
             print(ansi_bold, end='', file=fd)
@@ -303,12 +320,15 @@ def _get_overall_pbar(num_simulations, max_width, fd):
         fd=fd,
         min_value=0,
         max_value=num_simulations,
-        widgets=[progressbar.FormatLabel('%(value)s of %(max_value)s '),
-                 'simulations (',
-                 progressbar.Percentage(),
-                 ') ',
-                 progressbar.Bar(),
-                 progressbar.ETA()])
+        widgets=[
+            progressbar.FormatLabel('%(value)s of %(max_value)s '),
+            'simulations (',
+            progressbar.Percentage(),
+            ') ',
+            progressbar.Bar(),
+            progressbar.ETA(),
+        ],
+    )
 
     if max_width and pbar.term_width > max_width:
         pbar.term_width = max_width

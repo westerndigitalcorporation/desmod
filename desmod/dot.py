@@ -29,15 +29,17 @@ from itertools import cycle, groupby
 
 from desmod.component import Component
 
-_color_cycle = cycle([
-    'dodgerblue4',
-    'darkgreen',
-    'darkorchid',
-    'darkslategray',
-    'deeppink4',
-    'goldenrod4',
-    'firebrick4',
-])
+_color_cycle = cycle(
+    [
+        'dodgerblue4',
+        'darkgreen',
+        'darkorchid',
+        'darkslategray',
+        'deeppink4',
+        'goldenrod4',
+        'firebrick4',
+    ]
+)
 
 
 def generate_dot(top, config=None):
@@ -77,34 +79,44 @@ def generate_dot(top, config=None):
 
     if all_filename:
         with open(all_filename, 'w') as dot_file:
-            dot_file.write(component_to_dot(top,
-                                            show_hierarchy=True,
-                                            show_connections=True,
-                                            show_processes=True,
-                                            colorscheme=colorscheme))
+            dot_file.write(
+                component_to_dot(
+                    top,
+                    show_hierarchy=True,
+                    show_connections=True,
+                    show_processes=True,
+                    colorscheme=colorscheme,
+                )
+            )
 
     if hier_filename:
         with open(hier_filename, 'w') as dot_file:
-            dot_file.write(component_to_dot(top,
-                                            show_hierarchy=True,
-                                            show_connections=False,
-                                            show_processes=False,
-                                            colorscheme=colorscheme))
+            dot_file.write(
+                component_to_dot(
+                    top,
+                    show_hierarchy=True,
+                    show_connections=False,
+                    show_processes=False,
+                    colorscheme=colorscheme,
+                )
+            )
 
     if conn_filename:
         with open(conn_filename, 'w') as dot_file:
-            dot_file.write(component_to_dot(top,
-                                            show_hierarchy=False,
-                                            show_connections=True,
-                                            show_processes=False,
-                                            colorscheme=colorscheme))
+            dot_file.write(
+                component_to_dot(
+                    top,
+                    show_hierarchy=False,
+                    show_connections=True,
+                    show_processes=False,
+                    colorscheme=colorscheme,
+                )
+            )
 
 
-def component_to_dot(top,
-                     show_hierarchy=True,
-                     show_connections=True,
-                     show_processes=True,
-                     colorscheme=''):
+def component_to_dot(
+    top, show_hierarchy=True, show_connections=True, show_processes=True, colorscheme=''
+):
     """Produce a dot stream from a component hierarchy.
 
     The DOT language representation of the component instance hierarchy can
@@ -139,29 +151,34 @@ def component_to_dot(top,
     """
     indent = '    '
     lines = ['strict digraph M {']
-    lines.extend(indent + line
-                 for line in _comp_hierarchy([top],
-                                             show_hierarchy,
-                                             show_connections,
-                                             show_processes,
-                                             colorscheme))
+    lines.extend(
+        indent + line
+        for line in _comp_hierarchy(
+            [top], show_hierarchy, show_connections, show_processes, colorscheme
+        )
+    )
     if show_connections:
         lines.append('')
-        lines.extend(indent + line
-                     for line in _comp_connections(top))
+        lines.extend(indent + line for line in _comp_connections(top))
     lines.append('}')
     return '\n'.join(lines)
 
 
-def _comp_hierarchy(component_group,
-                    show_hierarchy, show_connections, show_processes,
-                    colorscheme, _level=1):
+def _comp_hierarchy(
+    component_group,
+    show_hierarchy,
+    show_connections,
+    show_processes,
+    colorscheme,
+    _level=1,
+):
     component = component_group[0]
     if len(component_group) == 1:
         label_name = _comp_name(component)
     else:
-        label_name = '{}..{}'.format(_comp_name(component_group[0]),
-                                     _comp_name(component_group[-1]))
+        label_name = '{}..{}'.format(
+            _comp_name(component_group[0]), _comp_name(component_group[-1])
+        )
 
     if component._children and show_hierarchy:
         border_style = 'dotted'
@@ -169,13 +186,12 @@ def _comp_hierarchy(component_group,
         border_style = 'rounded'
     if colorscheme:
         style = 'style="{},filled",fillcolor="/{}/{}"'.format(
-            border_style, colorscheme, _level)
+            border_style, colorscheme, _level
+        )
     else:
         style = 'style=' + border_style
 
-    node_lines = [
-        '"{}" [shape=box,{},label=<'.format(_comp_scope(component), style)
-    ]
+    node_lines = ['"{}" [shape=box,{},label=<'.format(_comp_scope(component), style)]
 
     label_lines = _comp_label(component, label_name, show_processes)
     if len(label_lines) == 1:
@@ -194,10 +210,12 @@ def _comp_hierarchy(component_group,
                 indent + 'label=<{}>'.format(_cluster_label(component_group)),
             ]
             if colorscheme:
-                lines.extend([
-                    indent + 'style="filled"',
-                    indent + 'fillcolor="/{}/{}"'.format(colorscheme, _level),
-                ])
+                lines.extend(
+                    [
+                        indent + 'style="filled"',
+                        indent + 'fillcolor="/{}/{}"'.format(colorscheme, _level),
+                    ]
+                )
         else:
             indent = ''
             lines = []
@@ -206,12 +224,15 @@ def _comp_hierarchy(component_group,
         for child_group in _child_type_groups(component):
             lines.extend(
                 indent + line
-                for line in _comp_hierarchy(child_group,
-                                            show_hierarchy,
-                                            show_connections,
-                                            show_processes,
-                                            colorscheme,
-                                            _level + 1))
+                for line in _comp_hierarchy(
+                    child_group,
+                    show_hierarchy,
+                    show_connections,
+                    show_processes,
+                    colorscheme,
+                    _level + 1,
+                )
+            )
         if show_hierarchy:
             lines.append('}')
         return lines
@@ -223,17 +244,23 @@ def _comp_connections(component):
         attrs = {}
         if isinstance(conn_obj, Component):
             src = conn_obj
-        elif (isinstance(conn_obj, list) and conn_obj and
-              isinstance(conn_obj[0], Component)):
+        elif (
+            isinstance(conn_obj, list)
+            and conn_obj
+            and isinstance(conn_obj[0], Component)
+        ):
             src = conn_obj[0]
         else:
             attrs['label'] = '"{}"'.format(conn)
             attrs['color'] = attrs['fontcolor'] = next(_color_cycle)
 
-        lines.append('"{dst_id}" -> "{src_id}" [{attrs}];'
-                     .format(dst_id=_comp_scope(component),
-                             src_id=_comp_scope(src),
-                             attrs=_join_attrs(attrs)))
+        lines.append(
+            '"{dst_id}" -> "{src_id}" [{attrs}];'.format(
+                dst_id=_comp_scope(component),
+                src_id=_comp_scope(src),
+                attrs=_join_attrs(attrs),
+            )
+        )
 
     for child_group in _child_type_groups(component):
         lines.extend(_comp_connections(child_group[0]))
@@ -263,8 +290,7 @@ def _cluster_label(component_group):
     if len(component_group) == 1:
         return '<b>{}</b>'.format(_comp_name(component_group[0]))
     else:
-        return '<b>{}..{}</b>'.format(component_group[0].name,
-                                      component_group[-1].name)
+        return '<b>{}..{}</b>'.format(component_group[0].name, component_group[-1].name)
 
 
 def _comp_label(component, label_name, show_processes):
@@ -276,10 +302,10 @@ def _comp_label(component, label_name, show_processes):
             if proc_func not in proc_funcs:
                 proc_funcs.add(proc_func)
                 label_lines.append(
-                    '<i>{}</i><br align="left"/>'.format(proc_func.__name__))
+                    '<i>{}</i><br align="left"/>'.format(proc_func.__name__)
+                )
     return label_lines
 
 
 def _join_attrs(attrs):
-    return ','.join('{}={}'.format(k, v)
-                    for k, v in sorted(attrs.items()))
+    return ','.join('{}={}'.format(k, v) for k, v in sorted(attrs.items()))

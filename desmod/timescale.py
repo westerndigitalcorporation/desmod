@@ -1,19 +1,12 @@
 import re
 
-_unit_map = {'s': 1e0,
-             'ms': 1e3,
-             'us': 1e6,
-             'ns': 1e9,
-             'ps': 1e12,
-             'fs': 1e15}
+_unit_map = {'s': 1e0, 'ms': 1e3, 'us': 1e6, 'ns': 1e9, 'ps': 1e12, 'fs': 1e15}
 
 _num_re = r'[-+]? (?: \d*\.\d+ | \d+\.?\d* ) (?: [eE] [-+]? \d+)?'
 
 _timescale_re = re.compile(
-    r'(?P<num>{})?'.format(_num_re) +
-    r'\s?' +
-    r'(?P<unit> [fpnum]? s)?',
-    re.VERBOSE)
+    r'(?P<num>{})?'.format(_num_re) + r'\s?' + r'(?P<unit> [fpnum]? s)?', re.VERBOSE
+)
 
 
 def parse_time(time_str, default_unit=None):

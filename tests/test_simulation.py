@@ -56,7 +56,6 @@ def config():
 
 
 class TopTest(Component):
-
     @classmethod
     def pre_init(cls, env):
         if env.config.get('test.fail_pre_init'):
@@ -95,8 +94,9 @@ def test_pre_init_failure(config):
     assert result['sim.time'] == 0
     assert result['sim.runtime'] > 0
     assert result['config']['test.fail_pre_init']
-    assert os.path.exists(os.path.join(config['sim.workspace'],
-                                       config['sim.result.file']))
+    assert os.path.exists(
+        os.path.join(config['sim.workspace'], config['sim.result.file'])
+    )
 
 
 def test_init_failure(config):
@@ -108,8 +108,7 @@ def test_init_failure(config):
     assert result['sim.runtime'] > 0
     assert result['config']['test.fail_init']
     for file_key in ['sim.result.file', 'sim.config.file']:
-        assert os.path.exists(os.path.join(config['sim.workspace'],
-                                           config[file_key]))
+        assert os.path.exists(os.path.join(config['sim.workspace'], config[file_key]))
 
 
 def test_simulate_fail(config):
@@ -121,8 +120,7 @@ def test_simulate_fail(config):
     assert result['sim.runtime'] > 0
     assert result['config']['test.fail_simulate']
     for file_key in ['sim.result.file', 'sim.config.file']:
-        assert os.path.exists(os.path.join(config['sim.workspace'],
-                                           config[file_key]))
+        assert os.path.exists(os.path.join(config['sim.workspace'], config[file_key]))
 
 
 def test_post_simulate_fail(config):
@@ -134,8 +132,7 @@ def test_post_simulate_fail(config):
     assert result['sim.runtime'] > 0
     assert result['config']['test.fail_post_simulate']
     for file_key in ['sim.result.file', 'sim.config.file']:
-        assert os.path.exists(os.path.join(config['sim.workspace'],
-                                           config[file_key]))
+        assert os.path.exists(os.path.join(config['sim.workspace'], config[file_key]))
 
 
 def test_get_result_fail(config):
@@ -147,8 +144,7 @@ def test_get_result_fail(config):
     assert result['sim.runtime'] > 0
     assert result['config']['test.fail_get_result']
     for file_key in ['sim.result.file', 'sim.config.file']:
-        assert os.path.exists(os.path.join(config['sim.workspace'],
-                                           config[file_key]))
+        assert os.path.exists(os.path.join(config['sim.workspace'], config[file_key]))
 
 
 def test_simulate_reraise(config):
@@ -196,8 +192,11 @@ def test_simulate_factors(config):
     for result in results:
         assert result['sim.exception'] is None
         assert os.path.exists(
-            os.path.join(result['config']['meta.sim.workspace'],
-                         result['config']['sim.result.file']))
+            os.path.join(
+                result['config']['meta.sim.workspace'],
+                result['config']['sim.result.file'],
+            )
+        )
 
 
 def test_simulate_factors_only_factor(config):
@@ -208,15 +207,20 @@ def test_simulate_factors_only_factor(config):
 
     factors = [(['sim.seed'], [[1], [2], [3]])]
     results = simulate_factors(
-        config, factors, TopTest, config_filter=single_factor_filter_fn)
+        config, factors, TopTest, config_filter=single_factor_filter_fn
+    )
     assert len(results) == 1
     for result in results:
         assert result['sim.exception'] is None
         assert result['config']['meta.sim.workspace'] == os.path.join(
-            config['sim.workspace'], str(FACTOR_NUM))
+            config['sim.workspace'], str(FACTOR_NUM)
+        )
         assert os.path.exists(
-            os.path.join(result['config']['meta.sim.workspace'],
-                         result['config']['sim.result.file']))
+            os.path.join(
+                result['config']['meta.sim.workspace'],
+                result['config']['sim.result.file'],
+            )
+        )
 
 
 def test_simulate_factors_progress(config, capfd):
@@ -228,8 +232,11 @@ def test_simulate_factors_progress(config, capfd):
     for result in results:
         assert result['sim.exception'] is None
         assert os.path.exists(
-            os.path.join(result['config']['meta.sim.workspace'],
-                         result['config']['sim.result.file']))
+            os.path.join(
+                result['config']['meta.sim.workspace'],
+                result['config']['sim.result.file'],
+            )
+        )
     out, err = capfd.readouterr()
     assert out == ''
     assert '3 of 3 simulations' in err
@@ -245,8 +252,11 @@ def test_simulate_factors_progress_tty(config, capsys):
     for result in results:
         assert result['sim.exception'] is None
         assert os.path.exists(
-            os.path.join(result['config']['meta.sim.workspace'],
-                         result['config']['sim.result.file']))
+            os.path.join(
+                result['config']['meta.sim.workspace'],
+                result['config']['sim.result.file'],
+            )
+        )
 
 
 def test_simulate_factors_no_overwrite(config):
@@ -258,8 +268,11 @@ def test_simulate_factors_no_overwrite(config):
     for result in results:
         assert result['sim.exception'] is None
         assert os.path.exists(
-            os.path.join(result['config']['meta.sim.workspace'],
-                         result['config']['sim.result.file']))
+            os.path.join(
+                result['config']['meta.sim.workspace'],
+                result['config']['sim.result.file'],
+            )
+        )
 
     with open(os.path.join(config['sim.workspace'], 'cookie.txt'), 'w') as f:
         f.write('hi')
@@ -271,8 +284,11 @@ def test_simulate_factors_no_overwrite(config):
     for result in results:
         assert result['sim.exception'] is None
         assert os.path.exists(
-            os.path.join(result['config']['meta.sim.workspace'],
-                         result['config']['sim.result.file']))
+            os.path.join(
+                result['config']['meta.sim.workspace'],
+                result['config']['sim.result.file'],
+            )
+        )
 
     with open(os.path.join(config['sim.workspace'], 'cookie.txt')) as f:
         assert f.read() == 'hi'
@@ -287,8 +303,11 @@ def test_simulate_factors_overwrite(config):
     for result in results:
         assert result['sim.exception'] is None
         assert os.path.exists(
-            os.path.join(result['config']['meta.sim.workspace'],
-                         result['config']['sim.result.file']))
+            os.path.join(
+                result['config']['meta.sim.workspace'],
+                result['config']['sim.result.file'],
+            )
+        )
 
     with open(os.path.join(config['sim.workspace'], 'cookie.txt'), 'w') as f:
         f.write('hi')
@@ -300,11 +319,13 @@ def test_simulate_factors_overwrite(config):
     for result in results:
         assert result['sim.exception'] is None
         assert os.path.exists(
-            os.path.join(result['config']['meta.sim.workspace'],
-                         result['config']['sim.result.file']))
+            os.path.join(
+                result['config']['meta.sim.workspace'],
+                result['config']['sim.result.file'],
+            )
+        )
 
-    assert not os.path.exists(os.path.join(config['sim.workspace'],
-                                           'cookie.txt'))
+    assert not os.path.exists(os.path.join(config['sim.workspace'], 'cookie.txt'))
     assert set(os.listdir(config['sim.workspace'])) == set(['0', '1'])
 
 
@@ -315,8 +336,9 @@ def test_progress_enabled(config):
     assert result['sim.now'] == 1
     assert result['sim.time'] == 1e-6
     assert result['sim.runtime'] > 0
-    assert os.path.exists(os.path.join(config['sim.workspace'],
-                                       config['sim.result.file']))
+    assert os.path.exists(
+        os.path.join(config['sim.workspace'], config['sim.result.file'])
+    )
 
 
 @pytest.mark.parametrize('max_width', [0, 1])
@@ -331,8 +353,11 @@ def test_many_progress_enabled(config, max_width):
         assert result['sim.time'] == 1e-6
         assert result['sim.runtime'] > 0
         assert os.path.exists(
-            os.path.join(result['config']['meta.sim.workspace'],
-                         result['config']['sim.result.file']))
+            os.path.join(
+                result['config']['meta.sim.workspace'],
+                result['config']['sim.result.file'],
+            )
+        )
 
 
 def test_many_progress_no_pbar(config, capsys, no_progressbar):
@@ -459,12 +484,15 @@ def test_sim_json_result(config):
         assert json.load(f) == result
 
 
-@pytest.mark.parametrize('ext, parser', [
-    ('yaml', yaml.safe_load),
-    ('yml', yaml.safe_load),
-    ('json', json.load),
-    ('py', lambda f: eval(f.read())),
-])
+@pytest.mark.parametrize(
+    'ext, parser',
+    [
+        ('yaml', yaml.safe_load),
+        ('yml', yaml.safe_load),
+        ('json', json.load),
+        ('py', lambda f: eval(f.read())),
+    ],
+)
 def test_sim_result_format(config, ext, parser):
     config['sim.result.file'] = 'result.' + ext
     config['sim.config.file'] = 'config.' + ext

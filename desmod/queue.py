@@ -22,9 +22,7 @@ class QueuePutEvent(Event):
         self.queue = queue
         self.item = item
         queue._put_waiters.append(self)
-        self.callbacks.extend(
-            [queue._trigger_when_at_least, queue._trigger_get]
-        )
+        self.callbacks.extend([queue._trigger_when_at_least, queue._trigger_get])
         queue._trigger_put()
 
     def __enter__(self):
@@ -44,9 +42,7 @@ class QueueGetEvent(Event):
         super(QueueGetEvent, self).__init__(queue.env)
         self.queue = queue
         queue._get_waiters.append(self)
-        self.callbacks.extend(
-            [queue._trigger_when_at_most, queue._trigger_put]
-        )
+        self.callbacks.extend([queue._trigger_when_at_most, queue._trigger_put])
         queue._trigger_get()
 
     def __enter__(self):
@@ -116,16 +112,12 @@ class QueueWhenAnyEvent(QueueWhenAtLeastEvent):
 
 class QueueWhenFullEvent(QueueWhenAtLeastEvent):
     def __init__(self, queue):
-        super(QueueWhenFullEvent, self).__init__(
-            queue, num_items=queue.capacity
-        )
+        super(QueueWhenFullEvent, self).__init__(queue, num_items=queue.capacity)
 
 
 class QueueWhenNotFullEvent(QueueWhenAtMostEvent):
     def __init__(self, queue):
-        super(QueueWhenNotFullEvent, self).__init__(
-            queue, num_items=queue.capacity - 1
-        )
+        super(QueueWhenNotFullEvent, self).__init__(queue, num_items=queue.capacity - 1)
 
 
 class QueueWhenEmptyEvent(QueueWhenAtMostEvent):
@@ -151,8 +143,8 @@ class Queue:
     :param name: Optional name to associate with the queue.
 
     """
-    def __init__(self, env, capacity=float('inf'), hard_cap=False, items=(),
-                 name=None):
+
+    def __init__(self, env, capacity=float('inf'), hard_cap=False, items=(), name=None):
         self.env = env
         #: Capacity of the queue (maximum number of items).
         self.capacity = capacity
@@ -244,17 +236,13 @@ class Queue:
 
     def _trigger_when_at_least(self, _=None):
         while (
-            self._at_least_waiters
-            and self.size >= self._at_least_waiters[0].num_items
+            self._at_least_waiters and self.size >= self._at_least_waiters[0].num_items
         ):
             when_at_least_ev = heappop(self._at_least_waiters)
             when_at_least_ev.succeed()
 
     def _trigger_when_at_most(self, _=None):
-        while (
-            self._at_most_waiters
-            and self.size <= self._at_most_waiters[0].num_items
-        ):
+        while self._at_most_waiters and self.size <= self._at_most_waiters[0].num_items:
             at_most_ev = heappop(self._at_most_waiters)
             at_most_ev.succeed()
 
@@ -275,6 +263,7 @@ class PriorityItem(namedtuple('PriorityItem', 'priority item')):
         `item` itself does not have to be orderable.
 
     """
+
     def __lt__(self, other):
         return self.priority < other.priority
 

@@ -42,8 +42,7 @@ class Top(Component):
 
         # Instantiate GasStation components. An index is passed so that each
         # child gas station gets a unique name.
-        self.gas_stations = [GasStation(self, index=i)
-                             for i in range(num_gas_stations)]
+        self.gas_stations = [GasStation(self, index=i) for i in range(num_gas_stations)]
 
         # There is just one tanker company.
         self.tanker_company = TankerCompany(self)
@@ -103,6 +102,7 @@ class TankerTruck(Component):
     truck's tank becomes empty, it must go refill itself.
 
     """
+
     base_name = 'truck'
 
     def __init__(self, *args, **kwargs):
@@ -143,16 +143,18 @@ class TankerTruck(Component):
                 yield self.env.timeout(pump_time)
 
                 yield self.tank.put(self.tank.capacity)
-                self.info('refilled {}L in {:.0f}s'.format(
-                    self.tank.capacity, pump_time))
+                self.info(
+                    'refilled {}L in {:.0f}s'.format(self.tank.capacity, pump_time)
+                )
 
             gas_station, done_event = yield self._instructions.get()
             self.info('traveling to {}'.format(gas_station.name))
             travel_time = self.env.rand.expovariate(1 / self.avg_travel)
             yield self.env.timeout(travel_time)
             self.info('arrived at {}'.format(gas_station.name))
-            while self.tank.level and (gas_station.reservoir.level <
-                                       gas_station.reservoir.capacity):
+            while self.tank.level and (
+                gas_station.reservoir.level < gas_station.reservoir.capacity
+            ):
                 yield self.env.timeout(1 / self.pump_rate)
                 yield gas_station.reservoir.put(1)
                 yield self.tank.get(1)
@@ -171,6 +173,7 @@ class GasStation(Component):
     company for a tanker truck to refill the reservoir.
 
     """
+
     base_name = 'station'
 
     def __init__(self, *args, **kwargs):
@@ -238,8 +241,7 @@ class GasStation(Component):
                 yield self.reservoir.get(1)
                 yield self.env.timeout(1 / self.pump_rate)
             pump_time = self.env.now - t0
-            self.info('car{} pumped {}L in {:.0f}s'.format(
-                i, amount, pump_time))
+            self.info('car{} pumped {}L in {:.0f}s'.format(i, amount, pump_time))
 
 
 # Desmod uses a plain dictionary to represent the simulation configuration.

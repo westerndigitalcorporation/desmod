@@ -66,11 +66,12 @@ class TopTest(Component):
         self.auto_probe('queue', **hints)
         self.auto_probe('pool', **hints)
         self.trace_some = self.get_trace_function(
-            'something', vcd={'var_type': 'real'}, log={'level': 'INFO'})
+            'something', vcd={'var_type': 'real'}, log={'level': 'INFO'}
+        )
         self.trace_other = self.get_trace_function(
-            'otherthing', vcd={'var_type': 'integer',
-                               'init': ('z', 'z'),
-                               'size': (8, 8)})
+            'otherthing',
+            vcd={'var_type': 'integer', 'init': ('z', 'z'), 'size': (8, 8)},
+        )
         self.add_process(self.loop)
 
     def connect_children(self):
@@ -117,12 +118,13 @@ def test_defaults(config):
     workspace = config['sim.workspace']
     assert os.path.isdir(workspace)
     assert os.path.exists(os.path.join(workspace, config['sim.result.file']))
-    for filename_key in ['sim.log.file',
-                         'sim.vcd.dump_file',
-                         'sim.vcd.gtkw_file',
-                         'sim.db.file']:
-        assert not os.path.exists(os.path.join(workspace,
-                                               config[filename_key]))
+    for filename_key in [
+        'sim.log.file',
+        'sim.vcd.dump_file',
+        'sim.vcd.gtkw_file',
+        'sim.db.file',
+    ]:
+        assert not os.path.exists(os.path.join(workspace, config[filename_key]))
 
 
 def test_exception(config):
@@ -169,8 +171,7 @@ def test_log_persist(config):
 def test_vcd(config):
     config['sim.vcd.enable'] = True
     simulate(config, TopTest)
-    dump_path = os.path.join(config['sim.workspace'],
-                             config['sim.vcd.dump_file'])
+    dump_path = os.path.join(config['sim.workspace'], config['sim.vcd.dump_file'])
     assert os.path.exists(dump_path)
     with open(dump_path) as dump:
         vcd_str = dump.read()
@@ -182,8 +183,7 @@ def test_vcd_start(config):
     config['sim.vcd.enable'] = True
     config['sim.vcd.start_time'] = '5 us'
     simulate(config, TopTest)
-    dump_path = os.path.join(config['sim.workspace'],
-                             config['sim.vcd.dump_file'])
+    dump_path = os.path.join(config['sim.workspace'], config['sim.vcd.dump_file'])
     with open(dump_path) as dump:
         vcd_str = dump.read()
         assert 'dumpon' in vcd_str
@@ -194,8 +194,7 @@ def test_vcd_stop(config):
     config['sim.vcd.enable'] = True
     config['sim.vcd.stop_time'] = '5 us'
     simulate(config, TopTest)
-    dump_path = os.path.join(config['sim.workspace'],
-                             config['sim.vcd.dump_file'])
+    dump_path = os.path.join(config['sim.workspace'], config['sim.vcd.dump_file'])
     with open(dump_path) as dump:
         vcd_str = dump.read()
         assert 'dumpoff' in vcd_str
@@ -207,8 +206,7 @@ def test_vcd_start_then_stop(config):
     config['sim.vcd.start_time'] = '4 us'
     config['sim.vcd.stop_time'] = '6 us'
     simulate(config, TopTest)
-    dump_path = os.path.join(config['sim.workspace'],
-                             config['sim.vcd.dump_file'])
+    dump_path = os.path.join(config['sim.workspace'], config['sim.vcd.dump_file'])
     with open(dump_path) as dump:
         vcd_str = dump.read()
         assert 'dumpon' in vcd_str
@@ -223,8 +221,7 @@ def test_vcd_stop_then_start(config):
     config['sim.vcd.start_time'] = '6 us'
     config['sim.vcd.stop_time'] = '4 us'
     simulate(config, TopTest)
-    dump_path = os.path.join(config['sim.workspace'],
-                             config['sim.vcd.dump_file'])
+    dump_path = os.path.join(config['sim.workspace'], config['sim.vcd.dump_file'])
     with open(dump_path) as dump:
         vcd_str = dump.read()
         assert 'dumpon' in vcd_str
@@ -238,8 +235,7 @@ def test_vcd_timescale(config):
     config['sim.vcd.enable'] = True
     config['sim.vcd.timescale'] = '10 s'
     simulate(config, TopTest)
-    dump_path = os.path.join(config['sim.workspace'],
-                             config['sim.vcd.dump_file'])
+    dump_path = os.path.join(config['sim.workspace'], config['sim.vcd.dump_file'])
     with open(dump_path) as dump:
         vcd_str = dump.read()
         assert '$timescale 10 s' in vcd_str
@@ -249,8 +245,7 @@ def test_vcd_persist(config):
     config['sim.vcd.enable'] = True
     config['sim.vcd.persist'] = False
     simulate(config, TopTest)
-    dump_path = os.path.join(config['sim.workspace'],
-                             config['sim.vcd.dump_file'])
+    dump_path = os.path.join(config['sim.workspace'], config['sim.vcd.dump_file'])
     assert not os.path.exists(dump_path)
 
 

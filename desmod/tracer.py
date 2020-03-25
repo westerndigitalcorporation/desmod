@@ -25,16 +25,17 @@ class Tracer:
         self.persist = env.config.setdefault(cfg_scope + 'persist', True)
         if self.enabled:
             self.open()
-            include_pat = env.config.setdefault(cfg_scope + 'include_pat',
-                                                ['.*'])
+            include_pat = env.config.setdefault(cfg_scope + 'include_pat', ['.*'])
             exclude_pat = env.config.setdefault(cfg_scope + 'exclude_pat', [])
             self._include_re = [re.compile(pat) for pat in include_pat]
             self._exclude_re = [re.compile(pat) for pat in exclude_pat]
 
     def is_scope_enabled(self, scope):
-        return (self.enabled and
-                any(r.match(scope) for r in self._include_re) and
-                not any(r.match(scope) for r in self._exclude_re))
+        return (
+            self.enabled
+            and any(r.match(scope) for r in self._include_re)
+            and not any(r.match(scope) for r in self._exclude_re)
+        )
 
     def open(self):
         raise NotImplementedError()  # pragma: no cover
@@ -80,8 +81,9 @@ class LogTracer(Tracer):
         buffering = self.env.config.setdefault('sim.log.buffering', -1)
         level = self.env.config.setdefault('sim.log.level', 'INFO')
         self.max_level = self.levels[level]
-        self.format_str = self.env.config.setdefault('sim.log.format',
-                                                     self.default_format)
+        self.format_str = self.env.config.setdefault(
+            'sim.log.format', self.default_format
+        )
         ts_n, ts_unit = self.env.timescale
         if ts_n == 1:
             self.ts_unit = ts_unit
@@ -107,17 +109,17 @@ class LogTracer(Tracer):
             os.remove(self.filename)
 
     def is_scope_enabled(self, scope, level=None):
-        return ((level is None or self.levels[level] <= self.max_level) and
-                super(LogTracer, self).is_scope_enabled(scope))
+        return (level is None or self.levels[level] <= self.max_level) and super(
+            LogTracer, self
+        ).is_scope_enabled(scope)
 
     def activate_probe(self, scope, target, **hints):
         level = hints.get('level', 'PROBE')
         if not self.is_scope_enabled(scope, level):
             return None
-        format_str = partial_format(self.format_str,
-                                    level=level,
-                                    ts_unit=self.ts_unit,
-                                    scope=scope)
+        format_str = partial_format(
+            self.format_str, level=level, ts_unit=self.ts_unit, scope=scope
+        )
 
         def probe_callback(value):
             print(format_str.format(ts=self.env.now), value, file=self.file)
@@ -128,10 +130,9 @@ class LogTracer(Tracer):
         level = hints.get('level', 'DEBUG')
         if not self.is_scope_enabled(scope, level):
             return None
-        format_str = partial_format(self.format_str,
-                                    level=level,
-                                    ts_unit=self.ts_unit,
-                                    scope=scope)
+        format_str = partial_format(
+            self.format_str, level=level, ts_unit=self.ts_unit, scope=scope
+        )
 
         def trace_callback(*value):
             print(format_str.format(ts=self.env.now), *value, file=self.file)
@@ -140,13 +141,15 @@ class LogTracer(Tracer):
 
     def trace_exception(self):
         tb_lines = traceback.format_exception(*sys.exc_info())
-        print(self.format_str.format(level='ERROR',
-                                     ts=self.env.now,
-                                     ts_unit=self.ts_unit,
-                                     scope='Exception'),
-              tb_lines[-1], '\n',
-              *tb_lines,
-              file=self.file)
+        print(
+            self.format_str.format(
+                level='ERROR', ts=self.env.now, ts_unit=self.ts_unit, scope='Exception'
+            ),
+            tb_lines[-1],
+            '\n',
+            *tb_lines,
+            file=self.file,
+        )
 
 
 class VCDTracer(Tracer):
@@ -154,35 +157,37 @@ class VCDTracer(Tracer):
     name = 'vcd'
 
     def open(self):
-        dump_filename = self.env.config.setdefault('sim.vcd.dump_file',
-                                                   'sim.vcd')
+        dump_filename = self.env.config.setdefault('sim.vcd.dump_file', 'sim.vcd')
         if 'sim.vcd.timescale' in self.env.config:
             vcd_ts_str = self.env.config.setdefault(
-                'sim.vcd.timescale',
-                self.env.config['sim.timescale'])
+                'sim.vcd.timescale', self.env.config['sim.timescale']
+            )
             vcd_timescale = parse_time(vcd_ts_str)
         else:
             vcd_timescale = self.env.timescale
         self.scale_factor = scale_time(self.env.timescale, vcd_timescale)
         check_values = self.env.config.setdefault('sim.vcd.check_values', True)
         self.dump_file = open(dump_filename, 'w')
-        self.vcd = VCDWriter(self.dump_file,
-                             timescale=vcd_timescale,
-                             check_values=check_values)
-        self.save_filename = self.env.config.setdefault('sim.gtkw.file',
-                                                        'sim.gtkw')
+        self.vcd = VCDWriter(
+            self.dump_file, timescale=vcd_timescale, check_values=check_values
+        )
+        self.save_filename = self.env.config.setdefault('sim.gtkw.file', 'sim.gtkw')
         if self.env.config.setdefault('sim.gtkw.live'):
             from vcd.gtkw import spawn_gtkwave_interactive
+
             quiet = self.env.config.setdefault('sim.gtkw.quiet', True)
-            spawn_gtkwave_interactive(dump_filename, self.save_filename,
-                                      quiet=quiet)
+            spawn_gtkwave_interactive(dump_filename, self.save_filename, quiet=quiet)
 
         start_time = self.env.config.setdefault('sim.vcd.start_time', '')
         stop_time = self.env.config.setdefault('sim.vcd.stop_time', '')
-        t_start = (scale_time(parse_time(start_time), self.env.timescale)
-                   if start_time else None)
-        t_stop = (scale_time(parse_time(stop_time), self.env.timescale)
-                  if stop_time else None)
+        t_start = (
+            scale_time(parse_time(start_time), self.env.timescale)
+            if start_time
+            else None
+        )
+        t_stop = (
+            scale_time(parse_time(stop_time), self.env.timescale) if stop_time else None
+        )
         self.env.process(self._start_stop(t_start, t_stop))
 
     def vcd_now(self):
@@ -213,12 +218,9 @@ class VCDTracer(Tracer):
             elif isinstance(target, (simpy.Resource, simpy.Store, Queue)):
                 var_type = 'integer'
             else:
-                raise ValueError(
-                    'Could not infer VCD var_type for {}'.format(scope))
+                raise ValueError('Could not infer VCD var_type for {}'.format(scope))
 
-        kwargs = {k: hints[k]
-                  for k in ['size', 'init', 'ident']
-                  if k in hints}
+        kwargs = {k: hints[k] for k in ['size', 'init', 'ident'] if k in hints}
 
         if 'init' not in kwargs:
             if isinstance(target, (simpy.Container, Pool)):
@@ -239,17 +241,18 @@ class VCDTracer(Tracer):
     def activate_trace(self, scope, **hints):
         assert self.enabled
         var_type = hints['var_type']
-        kwargs = {k: hints[k]
-                  for k in ['size', 'init', 'ident']
-                  if k in hints}
+        kwargs = {k: hints[k] for k in ['size', 'init', 'ident'] if k in hints}
 
         parent_scope, name = scope.rsplit('.', 1)
         var = self.vcd.register_var(parent_scope, name, var_type, **kwargs)
 
         if isinstance(var.size, tuple):
+
             def trace_callback(*value):
                 self.vcd.change(var, self.vcd_now(), value)
+
         else:
+
             def trace_callback(value):
                 self.vcd.change(var, self.vcd_now(), value)
 
@@ -293,18 +296,19 @@ class SQLiteTracer(Tracer):
 
     def open(self):
         self.filename = self.env.config.setdefault('sim.db.file', 'sim.sqlite')
-        self.trace_table = self.env.config.setdefault('sim.db.trace_table',
-                                                      'trace')
+        self.trace_table = self.env.config.setdefault('sim.db.trace_table', 'trace')
         self.remove_files()
         self.db = sqlite3.connect(self.filename)
         self._is_trace_table_created = False
 
     def _create_trace_table(self):
         if not self._is_trace_table_created:
-            self.db.execute('CREATE TABLE {} ('
-                            'timestamp FLOAT, '
-                            'scope TEXT, '
-                            'value)'.format(self.trace_table))
+            self.db.execute(
+                'CREATE TABLE {} ('
+                'timestamp FLOAT, '
+                'scope TEXT, '
+                'value)'.format(self.trace_table)
+            )
             self._is_trace_table_created = True
 
     def flush(self):
@@ -326,17 +330,17 @@ class SQLiteTracer(Tracer):
     def activate_trace(self, scope, **hints):
         assert self.enabled
         self._create_trace_table()
-        insert_sql = (
-            'INSERT INTO {} (timestamp, scope, value) VALUES (?, ?, ?)'
-            .format(self.trace_table))
+        insert_sql = 'INSERT INTO {} (timestamp, scope, value) VALUES (?, ?, ?)'.format(
+            self.trace_table
+        )
 
         def trace_callback(value):
             self.db.execute(insert_sql, (self.env.now, scope, value))
+
         return trace_callback
 
 
 class TraceManager:
-
     def __init__(self, env):
         self.tracers = []
         try:
@@ -370,8 +374,7 @@ class TraceManager:
         callbacks = []
         for tracer in self.tracers:
             if tracer.name in hints and tracer.is_scope_enabled(scope):
-                callback = tracer.activate_probe(scope, target,
-                                                 **hints[tracer.name])
+                callback = tracer.activate_probe(scope, target, **hints[tracer.name])
                 if callback:
                     callbacks.append(callback)
         if callbacks:

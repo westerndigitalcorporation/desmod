@@ -34,20 +34,22 @@ htmlhelp_basename = 'desmoddoc'
 
 latex_elements = {}
 latex_documents = [
-    (master_doc, 'desmod.tex', 'desmod Documentation',
-     'Pete Grayson', 'manual'),
+    (master_doc, 'desmod.tex', 'desmod Documentation', 'Pete Grayson', 'manual'),
 ]
-man_pages = [
-    (master_doc, 'desmod', 'desmod Documentation',
-     [author], 1)
-]
+man_pages = [(master_doc, 'desmod', 'desmod Documentation', [author], 1)]
 texinfo_documents = [
-    (master_doc, 'desmod', 'desmod Documentation',
-     author, 'desmod', 'Discrete Event Simulation Modeling using SimPy',
-     'Miscellaneous'),
+    (
+        master_doc,
+        'desmod',
+        'desmod Documentation',
+        author,
+        'desmod',
+        'Discrete Event Simulation Modeling using SimPy',
+        'Miscellaneous',
+    ),
 ]
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
-    'simpy': ('https://simpy.readthedocs.io/en/latest/', None)
+    'simpy': ('https://simpy.readthedocs.io/en/latest/', None),
 }

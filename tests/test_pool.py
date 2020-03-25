@@ -290,9 +290,7 @@ def test_when_at_least(env, PoolClass):
 @pytest.mark.parametrize('PoolClass', [Pool, PriorityPool])
 def test_pool_check_str(env, PoolClass):
     pool = PoolClass(env, name='bar', capacity=5)
-    assert str(pool) == "{}(name='bar' level=0 capacity=5)".format(
-        PoolClass.__name__
-    )
+    assert str(pool) == "{}(name='bar' level=0 capacity=5)".format(PoolClass.__name__)
 
 
 def test_priority_pool_gets(env):

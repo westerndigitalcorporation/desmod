@@ -34,8 +34,7 @@ class ConfigError(Exception):
     """Exception raised for a variety of configuration errors."""
 
 
-class NamedConfig(namedtuple('NamedConfig',
-                             'category name doc depend config')):
+class NamedConfig(namedtuple('NamedConfig', 'category name doc depend config')):
     """Named configuration group details.
 
     Iterating a :class:`NamedManager` instance yields ``NamedConfig``
@@ -56,6 +55,7 @@ class NamedManager:
     instances for each registered named configuration.
 
     """
+
     def __init__(self):
         self._named_configs = {}
 
@@ -79,8 +79,7 @@ class NamedManager:
             depend = []
         if config is None:
             config = {}
-        self._named_configs[name] = \
-            NamedConfig(category, name, doc, depend, config)
+        self._named_configs[name] = NamedConfig(category, name, doc, depend, config)
 
     def resolve(self, *names):
         """Resolve named configs into a new config object."""
@@ -118,15 +117,20 @@ def apply_user_config(config, user_config):
         except KeyError:
             raise ConfigError('Invalid config key: {}'.format(key))
         current_type = type(current_value)
-        if not (isinstance(value, current_type) or
-                # allow new float value to replace integer default
-                #  without truncation from int to float coercion
-                (isinstance(value, float) and issubclass(current_type, int))):
+        if not (
+            isinstance(value, current_type)
+            # allow new float value to replace integer default without truncation from
+            # int to float coercion
+            or (isinstance(value, float) and issubclass(current_type, int))
+        ):
             try:
                 value = current_type(value)
             except (ValueError, TypeError):
-                raise ConfigError('Failed to coerce {} to {} for {}'.format(
-                    value, current_type.__name__, key))
+                raise ConfigError(
+                    'Failed to coerce {} to {} for {}'.format(
+                        value, current_type.__name__, key
+                    )
+                )
         config[key] = value
 
 
@@ -182,8 +186,10 @@ def parse_user_factors(config, user_factors, eval_locals=None):
     :raises .ConfigError: For invalid user keys or expressions.
 
     """
-    return [parse_user_factor(config, user_keys, user_exprs, eval_locals)
-            for user_keys, user_exprs in user_factors]
+    return [
+        parse_user_factor(config, user_keys, user_exprs, eval_locals)
+        for user_keys, user_exprs in user_factors
+    ]
 
 
 def parse_user_factor(config, user_keys, user_exprs, eval_locals=None):
@@ -224,13 +230,13 @@ def parse_user_factor(config, user_keys, user_exprs, eval_locals=None):
     :raises .ConfigError: For invalid keys or value expressions.
 
     """
-    current = [fuzzy_lookup(config, user_key.strip())
-               for user_key in user_keys.split(',')]
+    current = [
+        fuzzy_lookup(config, user_key.strip()) for user_key in user_keys.split(',')
+    ]
     user_values = _safe_eval(user_exprs, eval_locals=eval_locals)
     values = []
     if not isinstance(user_values, Sequence):
-        raise ConfigError(
-            'Factor value not a sequence "{}"'.format(user_values))
+        raise ConfigError('Factor value not a sequence "{}"'.format(user_values))
     for user_items in user_values:
         if len(current) == 1:
             user_items = [user_items]
@@ -241,8 +247,9 @@ def parse_user_factor(config, user_keys, user_exprs, eval_locals=None):
                 try:
                     item = current_type(item)
                 except (ValueError, TypeError):
-                    raise ConfigError('Failed to coerce {} to {}'.format(
-                        item, current_type.__name__))
+                    raise ConfigError(
+                        'Failed to coerce {} to {}'.format(item, current_type.__name__)
+                    )
             items.append(item)
         values.append(items)
     return [[key for key, _ in current], values]
@@ -336,14 +343,35 @@ def fuzzy_lookup(config, fuzzy_key):
 
 
 _safe_builtins = [
-    'abs', 'bin', 'bool', 'dict', 'float', 'frozenset', 'hex', 'int', 'len',
-    'list', 'max', 'min', 'oct', 'ord', 'range', 'round', 'set', 'str', 'sum',
-    'tuple', 'tuple', 'zip', 'True', 'False',
+    'abs',
+    'bin',
+    'bool',
+    'dict',
+    'float',
+    'frozenset',
+    'hex',
+    'int',
+    'len',
+    'list',
+    'max',
+    'min',
+    'oct',
+    'ord',
+    'range',
+    'round',
+    'set',
+    'str',
+    'sum',
+    'tuple',
+    'tuple',
+    'zip',
+    'True',
+    'False',
 ]
 
-_default_eval_locals = {name: getattr(builtins, name)
-                        for name in _safe_builtins
-                        if hasattr(builtins, name)}
+_default_eval_locals = {
+    name: getattr(builtins, name) for name in _safe_builtins if hasattr(builtins, name)
+}
 
 
 def _safe_eval(expr, coerce_type=None, eval_locals=None):
@@ -355,8 +383,7 @@ def _safe_eval(expr, coerce_type=None, eval_locals=None):
         if coerce_type and issubclass(coerce_type, str):
             value = expr
         else:
-            raise ConfigError(
-                'Failed evaluation of expression "{}"'.format(expr))
+            raise ConfigError('Failed evaluation of expression "{}"'.format(expr))
 
     if coerce_type:
         if expr in eval_locals and not isinstance(value, coerce_type):
@@ -367,7 +394,9 @@ def _safe_eval(expr, coerce_type=None, eval_locals=None):
             except (ValueError, TypeError):
                 raise ConfigError(
                     'Failed to coerce expression {} to {}'.format(
-                        _quote_expr(expr), coerce_type.__name__))
+                        _quote_expr(expr), coerce_type.__name__
+                    )
+                )
     return value
 
 

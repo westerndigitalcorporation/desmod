@@ -121,9 +121,7 @@ class PoolWhenFullEvent(PoolWhenAtLeastEvent):
 
 class PoolWhenNotFullEvent(PoolWhenAtMostEvent):
     def __init__(self, pool, epsilon=float_info.epsilon):
-        super(PoolWhenNotFullEvent, self).__init__(
-            pool, amount=pool.capacity - epsilon
-        )
+        super(PoolWhenNotFullEvent, self).__init__(pool, amount=pool.capacity - epsilon)
 
 
 class PoolWhenEmptyEvent(PoolWhenAtMostEvent):
@@ -150,8 +148,7 @@ class Pool:
 
     """
 
-    def __init__(self, env, capacity=float('inf'), init=0, hard_cap=False,
-                 name=None):
+    def __init__(self, env, capacity=float('inf'), init=0, hard_cap=False, name=None):
         self.env = env
         #: Capacity of the pool (maximum level).
         self.capacity = capacity
@@ -235,18 +232,12 @@ class Pool:
                 idx += 1
 
     def _trigger_when_at_least(self, _=None):
-        while (
-            self._at_least_waiters
-            and self.level >= self._at_least_waiters[0].amount
-        ):
+        while self._at_least_waiters and self.level >= self._at_least_waiters[0].amount:
             when_at_least_ev = heapq.heappop(self._at_least_waiters)
             when_at_least_ev.succeed()
 
     def _trigger_when_at_most(self, _=None):
-        while (
-            self._at_most_waiters
-            and self.level <= self._at_most_waiters[0].amount
-        ):
+        while self._at_most_waiters and self.level <= self._at_most_waiters[0].amount:
             at_most_ev = heapq.heappop(self._at_most_waiters)
             at_most_ev.succeed()
 
@@ -324,9 +315,7 @@ class PriorityPool(Pool):
 
     """
 
-    def __init__(
-        self, env, capacity=float('inf'), init=0, hard_cap=False, name=None
-    ):
+    def __init__(self, env, capacity=float('inf'), init=0, hard_cap=False, name=None):
         super(PriorityPool, self).__init__(env, capacity, init, hard_cap, name)
         self._event_count = 0
 

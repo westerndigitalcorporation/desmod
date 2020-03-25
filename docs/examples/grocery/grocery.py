@@ -42,9 +42,11 @@ class Top(Component):
         # Compose a GTKWave save file that lays-out the various VCD signals in
         # a meaningful manner. This must be done at pre-init time to allow
         # sim.gtkw.live to work.
-        analog_kwargs = {'datafmt': 'dec',
-                         'color': 'cycle',
-                         'extraflags': ['analog_step']}
+        analog_kwargs = {
+            'datafmt': 'dec',
+            'color': 'cycle',
+            'extraflags': ['analog_step'],
+        }
         with open(env.config['sim.gtkw.file'], 'w') as gtkw_file:
             gtkw = GTKWSave(gtkw_file)
             gtkw.dumpfile(env.config['sim.vcd.dump_file'], abspath=False)
@@ -74,12 +76,10 @@ class GroceryStore(Component):
     def __init__(self, *args, **kwargs):
         super(GroceryStore, self).__init__(*args, **kwargs)
         num_lanes = self.env.config['grocery.num_lanes']
-        self.checkout_lanes = [CheckoutLane(self, index=i)
-                               for i in range(num_lanes)]
+        self.checkout_lanes = [CheckoutLane(self, index=i) for i in range(num_lanes)]
 
         num_baggers = self.env.config['grocery.num_baggers']
-        self.baggers = [Bagger(self, index=i)
-                        for i in range(num_baggers)]
+        self.baggers = [Bagger(self, index=i) for i in range(num_baggers)]
 
     def connect_children(self):
         # The baggers move between checkout lanes depending on bagger.policy,
@@ -154,11 +154,13 @@ class Cashier(Component):
         self.add_process(self.checkout)
 
         # Use exponential distribution to model item scan and bag times.
-        self.scan_dist = partial(self.env.rand.expovariate,
-                                 1 / self.env.config['cashier.scan_time'])
+        self.scan_dist = partial(
+            self.env.rand.expovariate, 1 / self.env.config['cashier.scan_time']
+        )
 
-        self.bag_dist = partial(self.env.rand.expovariate,
-                                1 / self.env.config['cashier.bag_time'])
+        self.bag_dist = partial(
+            self.env.rand.expovariate, 1 / self.env.config['cashier.bag_time']
+        )
 
     def checkout(self):
         """Cashier checkout behavior."""
@@ -197,8 +199,9 @@ class Bagger(Component):
     def __init__(self, *args, **kwargs):
         super(Bagger, self).__init__(*args, **kwargs)
         self.add_connections('checkout_lanes')
-        self.bag_dist = partial(self.env.rand.expovariate,
-                                1 / self.env.config['bagger.bag_time'])
+        self.bag_dist = partial(
+            self.env.rand.expovariate, 1 / self.env.config['bagger.bag_time']
+        )
 
         policy = self.env.config['bagger.policy']
         if policy == 'float-aggressive':
@@ -219,12 +222,16 @@ class Bagger(Component):
 
         """
         while True:
-            yield self.env.any_of(lane.bag_area.when_any()
-                                  for lane in self.checkout_lanes)
+            yield self.env.any_of(
+                lane.bag_area.when_any() for lane in self.checkout_lanes
+            )
 
-            lanes = reversed(sorted(filter(lambda lane: not lane.baggers.level,
-                                           self.checkout_lanes),
-                                    key=lambda lane: lane.bag_area.size))
+            lanes = reversed(
+                sorted(
+                    filter(lambda lane: not lane.baggers.level, self.checkout_lanes),
+                    key=lambda lane: lane.bag_area.size,
+                )
+            )
             for lane in lanes:
                 yield lane.baggers.put(1)
                 self.debug('assigned to lane', lane.index)
@@ -241,11 +248,11 @@ class Bagger(Component):
 
         """
         while True:
-            yield self.env.any_of(lane.bag_area.when_full()
-                                  for lane in self.checkout_lanes)
+            yield self.env.any_of(
+                lane.bag_area.when_full() for lane in self.checkout_lanes
+            )
 
-            for lane in filter(lambda lane: lane.bag_area.is_full,
-                               self.checkout_lanes):
+            for lane in filter(lambda lane: lane.bag_area.is_full, self.checkout_lanes):
                 yield lane.baggers.put(1)
                 self.debug('assigned to lane', lane.index)
                 yield self.env.process(self.bag_items(lane.bag_area))
@@ -259,8 +266,7 @@ class Bagger(Component):
         The bagger finds the first lane with no other baggers and stays there.
 
         """
-        _, lane = min((lane.baggers.level, lane)
-                      for lane in self.checkout_lanes)
+        _, lane = min((lane.baggers.level, lane) for lane in self.checkout_lanes)
         yield lane.baggers.put(1)
         self.debug('assigned to lane', lane.index)
         while True:
@@ -299,11 +305,13 @@ class Customers(Component):
         self.auto_probe('active', vcd={})
         if self.env.tracemgr.sqlite_tracer.enabled:
             self.db = self.env.tracemgr.sqlite_tracer.db
-            self.db.execute('CREATE TABLE customers '
-                            '(cust_id INTEGER PRIMARY KEY,'
-                            ' num_items INTEGER,'
-                            ' shop_time REAL,'
-                            ' checkout_time REAL)')
+            self.db.execute(
+                'CREATE TABLE customers '
+                '(cust_id INTEGER PRIMARY KEY,'
+                ' num_items INTEGER,'
+                ' shop_time REAL,'
+                ' checkout_time REAL)'
+            )
         else:
             self.db = None
 
@@ -317,23 +325,24 @@ class Customers(Component):
         """
         cust_id = count()
         arrival_interval_dist = partial(
-            self.env.rand.expovariate,
-            1 / self.env.config['customer.arrival_interval'])
+            self.env.rand.expovariate, 1 / self.env.config['customer.arrival_interval']
+        )
         time_per_item_dist = partial(
-            self.env.rand.expovariate,
-            1 / self.env.config['customer.time_per_item'])
+            self.env.rand.expovariate, 1 / self.env.config['customer.time_per_item']
+        )
         num_items_mu = self.env.config['customer.num_items.mu']
         num_items_sigma = self.env.config['customer.num_items.sigma']
         num_items_dist = partial(
-            self.env.rand.normalvariate, num_items_mu, num_items_sigma)
+            self.env.rand.normalvariate, num_items_mu, num_items_sigma
+        )
 
         while True:
             num_items = max(1, round(num_items_dist()))
             self.env.process(
                 self.customer(
-                    next(cust_id),
-                    num_items,
-                    shop_time=num_items * time_per_item_dist()))
+                    next(cust_id), num_items, shop_time=num_items * time_per_item_dist()
+                )
+            )
             yield self.env.timeout(arrival_interval_dist())
 
     def customer(self, cust_id, num_items, shop_time):
@@ -341,13 +350,13 @@ class Customers(Component):
         yield self.active.put(1)
         self.debug(cust_id, 'start shopping for', num_items, 'items')
         yield self.env.timeout(shop_time)
-        self.debug(cust_id, 'ready to checkout after',
-                   timedelta(seconds=shop_time))
+        self.debug(cust_id, 'ready to checkout after', timedelta(seconds=shop_time))
 
         t0 = self.env.now
 
-        lane = sorted(self.grocery.checkout_lanes,
-                      key=lambda lane: len(lane.customer_queue.queue))[0]
+        lane = sorted(
+            self.grocery.checkout_lanes, key=lambda lane: len(lane.customer_queue.queue)
+        )[0]
 
         with lane.customer_queue.request() as req:
             self.debug('enter queue', lane.index)
@@ -359,28 +368,34 @@ class Customers(Component):
 
         yield checkout_done
         checkout_time = self.env.now - t0
-        self.debug(cust_id, 'done checking out after',
-                   timedelta(seconds=checkout_time))
+        self.debug(cust_id, 'done checking out after', timedelta(seconds=checkout_time))
         yield self.active.get(1)
         if self.db:
-            self.db.execute('INSERT INTO customers '
-                            '(cust_id, num_items, shop_time, checkout_time) '
-                            'VALUES (?,?,?,?)',
-                            (cust_id, num_items, shop_time, checkout_time))
+            self.db.execute(
+                'INSERT INTO customers '
+                '(cust_id, num_items, shop_time, checkout_time) '
+                'VALUES (?,?,?,?)',
+                (cust_id, num_items, shop_time, checkout_time),
+            )
 
     def get_result_hook(self, result):
         if not self.db:
             return
         result['checkout_time_avg'] = self.db.execute(
-            'SELECT AVG(checkout_time) FROM customers').fetchone()[0]
+            'SELECT AVG(checkout_time) FROM customers'
+        ).fetchone()[0]
         result['checkout_time_min'] = self.db.execute(
-            'SELECT MIN(checkout_time) FROM customers').fetchone()[0]
+            'SELECT MIN(checkout_time) FROM customers'
+        ).fetchone()[0]
         result['checkout_time_max'] = self.db.execute(
-            'SELECT MAX(checkout_time) FROM customers').fetchone()[0]
+            'SELECT MAX(checkout_time) FROM customers'
+        ).fetchone()[0]
         result['customers_total'] = self.db.execute(
-            'SELECT COUNT() FROM customers').fetchone()[0]
-        result['customers_per_hour'] = (result['customers_total'] /
-                                        (self.env.time() / 3600))
+            'SELECT COUNT() FROM customers'
+        ).fetchone()[0]
+        result['customers_per_hour'] = result['customers_total'] / (
+            self.env.time() / 3600
+        )
 
 
 if __name__ == '__main__':
@@ -417,13 +432,25 @@ if __name__ == '__main__':
 
     parser = ArgumentParser()
     parser.add_argument(
-        '--set', '-s', nargs=2, metavar=('KEY', 'VALUE'),
-        action='append', default=[], dest='config_overrides',
-        help='Override config KEY with VALUE expression')
+        '--set',
+        '-s',
+        nargs=2,
+        metavar=('KEY', 'VALUE'),
+        action='append',
+        default=[],
+        dest='config_overrides',
+        help='Override config KEY with VALUE expression',
+    )
     parser.add_argument(
-        '--factor', '-f', nargs=2, metavar=('KEYS', 'VALUES'),
-        action='append', default=[], dest='factors',
-        help='Add multi-factor VALUES for KEY(S)')
+        '--factor',
+        '-f',
+        nargs=2,
+        metavar=('KEYS', 'VALUES'),
+        action='append',
+        default=[],
+        dest='factors',
+        help='Add multi-factor VALUES for KEY(S)',
+    )
     args = parser.parse_args()
     apply_user_overrides(config, args.config_overrides)
     factors = parse_user_factors(config, args.factors)

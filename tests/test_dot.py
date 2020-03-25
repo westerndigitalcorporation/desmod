@@ -77,13 +77,16 @@ def test_all(top):
     assert '"b0" -> "a"' in dot
 
 
-@pytest.mark.parametrize('key', [
-    'sim.dot.enable',
-    'sim.dot.colorscheme',
-    'sim.dot.all.file',
-    'sim.dot.hier.file',
-    'sim.dot.conn.file',
-])
+@pytest.mark.parametrize(
+    'key',
+    [
+        'sim.dot.enable',
+        'sim.dot.colorscheme',
+        'sim.dot.all.file',
+        'sim.dot.hier.file',
+        'sim.dot.conn.file',
+    ],
+)
 def test_generate_dot(top, key):
     assert key not in top.env.config
     generate_dot(top)
@@ -94,11 +97,9 @@ def test_generate_dot(top, key):
             assert top.env.config[key] not in files
 
 
-@pytest.mark.parametrize('key', [
-    'sim.dot.all.file',
-    'sim.dot.hier.file',
-    'sim.dot.conn.file',
-])
+@pytest.mark.parametrize(
+    'key', ['sim.dot.all.file', 'sim.dot.hier.file', 'sim.dot.conn.file']
+)
 def test_generate_dot_file_enables(top, key):
     top.env.config['sim.dot.enable'] = True
     top.env.config[key] = ''

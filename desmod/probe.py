@@ -30,8 +30,7 @@ def attach(scope, target, callbacks, **hints):
         else:
             _attach_pool_level(target, callbacks)
     else:
-        raise TypeError(
-            'Cannot probe {} of type {}'.format(scope, type(target)))
+        raise TypeError('Cannot probe {} of type {}'.format(scope, type(target)))
 
 
 def _attach_method(method, callbacks):
@@ -42,6 +41,7 @@ def _attach_method(method, callbacks):
             for callback in callbacks:
                 callback(value)
             return value
+
         return wrapper
 
     setattr(method.__self__, method.__func__.__name__, make_wrapper(method))
@@ -58,6 +58,7 @@ def _attach_container_level(container, callbacks):
                 for callback in callbacks:
                     callback(new_level)
             return ret
+
         return wrapper
 
     container._do_get = make_wrapper(container._do_get)
@@ -75,6 +76,7 @@ def _attach_store_items(store, callbacks):
                 for callback in callbacks:
                     callback(new_items)
             return ret
+
         return wrapper
 
     store._do_get = make_wrapper(store._do_get)
@@ -92,6 +94,7 @@ def _attach_resource_users(resource, callbacks):
                 for callback in callbacks:
                     callback(new_users)
             return ret
+
         return wrapper
 
     resource._do_get = make_wrapper(resource._do_get)
@@ -109,6 +112,7 @@ def _attach_resource_queue(resource, callbacks):
                 for callback in callbacks:
                     callback(new_queue)
             return ret
+
         return wrapper
 
     resource.request = make_wrapper(resource.request)
