@@ -253,8 +253,8 @@ class VCDTracer(Tracer):
 
         else:
 
-            def trace_callback(value):
-                self.vcd.change(var, self.vcd_now(), value)
+            def trace_callback(*value):
+                self.vcd.change(var, self.vcd_now(), value[0])
 
         return trace_callback
 
