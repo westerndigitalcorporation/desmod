@@ -20,13 +20,13 @@ class Tracer:
 
     def __init__(self, env):
         self.env = env
-        cfg_scope = 'sim.' + self.name + '.'
-        self.enabled = env.config.setdefault(cfg_scope + 'enable', False)
-        self.persist = env.config.setdefault(cfg_scope + 'persist', True)
+        cfg_scope = f'sim.{self.name}'
+        self.enabled = env.config.setdefault(f'{cfg_scope}.enable', False)
+        self.persist = env.config.setdefault(f'{cfg_scope}.persist', True)
         if self.enabled:
             self.open()
-            include_pat = env.config.setdefault(cfg_scope + 'include_pat', ['.*'])
-            exclude_pat = env.config.setdefault(cfg_scope + 'exclude_pat', [])
+            include_pat = env.config.setdefault(f'{cfg_scope}.include_pat', ['.*'])
+            exclude_pat = env.config.setdefault(f'{cfg_scope}.exclude_pat', [])
             self._include_re = [re.compile(pat) for pat in include_pat]
             self._exclude_re = [re.compile(pat) for pat in exclude_pat]
 
@@ -88,7 +88,7 @@ class LogTracer(Tracer):
         if ts_n == 1:
             self.ts_unit = ts_unit
         else:
-            self.ts_unit = '({}{})'.format(ts_n, ts_unit)
+            self.ts_unit = f'({ts_n}{ts_unit})'
 
         if self.filename:
             self.file = open(self.filename, 'w', buffering)
@@ -218,7 +218,7 @@ class VCDTracer(Tracer):
             elif isinstance(target, (simpy.Resource, simpy.Store, Queue)):
                 var_type = 'integer'
             else:
-                raise ValueError('Could not infer VCD var_type for {}'.format(scope))
+                raise ValueError(f'Could not infer VCD var_type for {scope}')
 
         kwargs = {k: hints[k] for k in ['size', 'init', 'ident'] if k in hints}
 
@@ -304,10 +304,10 @@ class SQLiteTracer(Tracer):
     def _create_trace_table(self):
         if not self._is_trace_table_created:
             self.db.execute(
-                'CREATE TABLE {} ('
-                'timestamp FLOAT, '
-                'scope TEXT, '
-                'value)'.format(self.trace_table)
+                f'CREATE TABLE {self.trace_table} ('
+                f'timestamp FLOAT, '
+                f'scope TEXT, '
+                f'value)'
             )
             self._is_trace_table_created = True
 
@@ -320,7 +320,7 @@ class SQLiteTracer(Tracer):
 
     def remove_files(self):
         if self.filename != ':memory:':
-            for filename in [self.filename, self.filename + '-journal']:
+            for filename in [self.filename, f'{self.filename}-journal']:
                 if os.path.exists(filename):
                     os.remove(filename)
 
@@ -330,8 +330,8 @@ class SQLiteTracer(Tracer):
     def activate_trace(self, scope, **hints):
         assert self.enabled
         self._create_trace_table()
-        insert_sql = 'INSERT INTO {} (timestamp, scope, value) VALUES (?, ?, ?)'.format(
-            self.trace_table
+        insert_sql = (
+            f'INSERT INTO {self.trace_table} (timestamp, scope, value) VALUES (?, ?, ?)'
         )
 
         def trace_callback(value):

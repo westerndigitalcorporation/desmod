@@ -4,9 +4,7 @@ _unit_map = {'s': 1e0, 'ms': 1e3, 'us': 1e6, 'ns': 1e9, 'ps': 1e12, 'fs': 1e15}
 
 _num_re = r'[-+]? (?: \d*\.\d+ | \d+\.?\d* ) (?: [eE] [-+]? \d+)?'
 
-_timescale_re = re.compile(
-    r'(?P<num>{})?'.format(_num_re) + r'\s?' + r'(?P<unit> [fpnum]? s)?', re.VERBOSE
-)
+_timescale_re = re.compile(rf'(?P<num>{_num_re})?\s?(?P<unit> [fpnum]? s)?', re.VERBOSE)
 
 
 def parse_time(time_str, default_unit=None):
@@ -26,7 +24,7 @@ def parse_time(time_str, default_unit=None):
     """
     match = _timescale_re.match(time_str)
     if not match or not time_str:
-        raise ValueError('Invalid timescale string "{}"'.format(time_str))
+        raise ValueError(f'Invalid timescale string "{time_str}"')
     if match.group('num'):
         num_str = match.group('num')
         try:

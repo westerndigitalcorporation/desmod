@@ -66,14 +66,14 @@ def _standalone_display_process(env, period_s, fd):
 def _print_progress(sim_index, now, t_stop, timescale, end, fd):
     parts = []
     if sim_index:
-        parts.append('Sim ' + str(sim_index))
+        parts.append(f'Sim {sim_index}')
     magnitude, units = timescale
     if magnitude == 1:
-        parts.append('{:6.0f} {}'.format(now, units))
+        parts.append(f'{now:6.0f} {units}')
     else:
-        parts.append('{}x{:6.0f} {}'.format(magnitude, now, units))
+        parts.append(f'{magnitude}x{now:6.0f} {units}')
     if t_stop:
-        parts.append('({:.0f}%)'.format(100 * now / t_stop))
+        parts.append(f'({100 * now / t_stop:.0f}%)')
     else:
         parts.append('(N/A%)')
     print(*parts, end=end, file=fd)
@@ -116,13 +116,13 @@ def _get_progressbar_widgets(sim_index, timescale, know_stop_time):
     widgets = []
 
     if sim_index is not None:
-        widgets.append('Sim {:3}|'.format(sim_index))
+        widgets.append(f'Sim {sim_index:3}|')
 
     magnitude, units = timescale
     if magnitude == 1:
-        sim_time_format = '%(value)6.0f {}|'.format(units)
+        sim_time_format = f'%(value)6.0f {units}|'
     else:
-        sim_time_format = '{}x%(value)6.0f {}|'.format(magnitude, units)
+        sim_time_format = f'{magnitude}x%(value)6.0f {units}|'
     widgets.append(progressbar.FormatLabel(sim_time_format))
 
     widgets.append(progressbar.Percentage())
@@ -223,7 +223,7 @@ def _print_simple(num_completed, num_simulations, td, end, fd):
         'of',
         num_simulations,
         'simulations',
-        '({:.0%})'.format(num_completed / num_simulations),
+        f'({num_completed / num_simulations:.0%})',
         end=end,
         file=fd,
     )

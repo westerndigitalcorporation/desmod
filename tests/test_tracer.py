@@ -176,7 +176,7 @@ def test_vcd(config):
     with open(dump_path) as dump:
         vcd_str = dump.read()
         for t in range(1, 11):
-            assert '#{}\n'.format(t) in vcd_str
+            assert f'#{t}\n' in vcd_str
 
 
 def test_vcd_start(config):

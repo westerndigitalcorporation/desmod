@@ -106,7 +106,7 @@ class Component:
             #: Component DAG.
             self.scope = self.name
         else:
-            self.scope = parent.scope + '.' + self.name
+            self.scope = f'{parent.scope}.{self.name}'
 
         if parent:
             parent._children.append(self)
@@ -208,9 +208,8 @@ class Component:
                 conn_obj = getattr(src, src_connection)
             else:
                 raise ConnectError(
-                    'src "{}" (class {}) does not have attr "{}"'.format(
-                        src.scope, type(src).__name__, src_connection
-                    )
+                    f'src "{src.scope}" (class {type(src).__name__}) does not have attr'
+                    f'"{src_connection}"'
                 )
         if dst_connection in dst._not_connected:
             setattr(dst, dst_connection, conn_obj)
@@ -218,9 +217,8 @@ class Component:
             dst._connections.append((dst_connection, src, src_connection, conn_obj))
         else:
             raise ConnectError(
-                'dst "{}" (class {}) does not declare connection "{}"'.format(
-                    dst.scope, type(dst).__name__, dst_connection
-                )
+                f'dst "{dst.scope}" (class {type(dst).__name__}) does not declare'
+                f'connection "{dst_connection}"'
             )
 
     def connect_children(self):
@@ -270,9 +268,7 @@ class Component:
         for child in self._children:
             if child._not_connected:
                 raise ConnectError(
-                    '{scope}.{conn_name} not connected'.format(
-                        scope=child.scope, conn_name=child._not_connected.pop()
-                    )
+                    f'{child.scope}.{child._not_connected.pop()} not connected'
                 )
             child.elaborate()
         for proc, args, kwargs in self._processes:

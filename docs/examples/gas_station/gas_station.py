@@ -91,7 +91,7 @@ class TankerCompany(Component):
         # Each component has debug(), info(), warn(), and error() log methods.
         # Log lines are automatically annotated with the simulation time and
         # the scope of the component doing the logging.
-        self.info('dispatching {} to {}'.format(truck.name, gas_station.name))
+        self.info(f'dispatching {truck.name} to {gas_station.name}')
         return truck.dispatch(gas_station, done_event)
 
 
@@ -143,15 +143,13 @@ class TankerTruck(Component):
                 yield self.env.timeout(pump_time)
 
                 yield self.tank.put(self.tank.capacity)
-                self.info(
-                    'refilled {}L in {:.0f}s'.format(self.tank.capacity, pump_time)
-                )
+                self.info(f'refilled {self.tank.capacity}L in {pump_time:.0f}s')
 
             gas_station, done_event = yield self._instructions.get()
-            self.info('traveling to {}'.format(gas_station.name))
+            self.info(f'traveling to {gas_station.name}')
             travel_time = self.env.rand.expovariate(1 / self.avg_travel)
             yield self.env.timeout(travel_time)
-            self.info('arrived at {}'.format(gas_station.name))
+            self.info(f'arrived at {gas_station.name}')
             while self.tank.level and (
                 gas_station.reservoir.level < gas_station.reservoir.capacity
             ):
@@ -231,9 +229,9 @@ class GasStation(Component):
     def _car(self, i):
         """Model a car transacting fuel."""
         with self.fuel_pumps.request() as pump_req:
-            self.info('car{} awaiting pump'.format(i))
+            self.info(f'car{i} awaiting pump')
             yield pump_req
-            self.info('car{} at pump'.format(i))
+            self.info(f'car{i} at pump')
             car_level = self.env.rand.randint(*self.car_level_range)
             amount = self.car_capacity - car_level
             t0 = self.env.now
@@ -241,7 +239,7 @@ class GasStation(Component):
                 yield self.reservoir.get(1)
                 yield self.env.timeout(1 / self.pump_rate)
             pump_time = self.env.now - t0
-            self.info('car{} pumped {}L in {:.0f}s'.format(i, amount, pump_time))
+            self.info(f'car{i} pumped {amount}L in {pump_time:.0f}s')
 
 
 # Desmod uses a plain dictionary to represent the simulation configuration.

@@ -265,7 +265,7 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
 
     """
     if jobs is not None and jobs < 1:
-        raise ValueError('Invalid number of jobs: {}'.format(jobs))
+        raise ValueError(f'Invalid number of jobs: {jobs}')
 
     progress_enable = any(
         config.setdefault('sim.progress.enable', False) for config in configs
@@ -286,7 +286,7 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
             )
         )
         if workspace in workspaces:
-            raise ValueError('Duplicate workspace: {}'.format(workspace))
+            raise ValueError(f'Duplicate workspace: {workspace}')
         workspaces.add(workspace)
 
         config.setdefault('meta.sim.index', index)
@@ -300,7 +300,7 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
     workers = []
     for i in range(num_workers):
         worker = Process(
-            name='sim-worker-{}'.format(i),
+            name=f'sim-worker-{i}',
             target=_simulate_worker,
             args=(
                 top_type,
@@ -355,7 +355,7 @@ def _dump_dict(filename, dump_dict):
     if filename is not None:
         _, ext = os.path.splitext(filename)
         if ext not in ['.yaml', '.yml', '.json', '.py']:
-            raise ValueError('Invalid extension: {}'.format(ext))
+            raise ValueError(f'Invalid extension: {ext}')
         with open(filename, 'w') as dump_file:
             if ext in ['.yaml', '.yml']:
                 yaml.safe_dump(dump_dict, stream=dump_file)

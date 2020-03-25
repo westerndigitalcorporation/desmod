@@ -30,7 +30,7 @@ def attach(scope, target, callbacks, **hints):
         else:
             _attach_pool_level(target, callbacks)
     else:
-        raise TypeError('Cannot probe {} of type {}'.format(scope, type(target)))
+        raise TypeError(f'Cannot probe {scope} of type {type(target)}')
 
 
 def _attach_method(method, callbacks):

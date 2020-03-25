@@ -248,9 +248,9 @@ class Queue:
 
     def __repr__(self):
         return (
-            '{0.__class__.__name__}(name={0.name!r} size={0.size}'
-            ' capacity={0.capacity})'
-        ).format(self)
+            f'{self.__class__.__name__}('
+            f'name={self.name!r} size={self.size} capacity={self.capacity})'
+        )
 
 
 class PriorityItem(namedtuple('PriorityItem', 'priority item')):

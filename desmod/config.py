@@ -74,7 +74,7 @@ class NamedManager:
 
         """
         if name in self._named_configs:
-            raise ConfigError('name already used: {}'.format(name))
+            raise ConfigError(f'name already used: {name}')
         if depend is None:
             depend = []
         if config is None:
@@ -90,7 +90,7 @@ class NamedManager:
     def _resolve(self, resolved, *names):
         for name in names:
             if name not in self._named_configs:
-                raise ConfigError('unknown named config: {}'.format(name))
+                raise ConfigError(f'unknown named config: {name}')
             nc = self._named_configs[name]
             self._resolve(resolved, *nc.depend)
             resolved.update(nc.config)
@@ -115,7 +115,7 @@ def apply_user_config(config, user_config):
         try:
             current_value = config[key]
         except KeyError:
-            raise ConfigError('Invalid config key: {}'.format(key))
+            raise ConfigError(f'Invalid config key: {key}')
         current_type = type(current_value)
         if not (
             isinstance(value, current_type)
@@ -127,9 +127,7 @@ def apply_user_config(config, user_config):
                 value = current_type(value)
             except (ValueError, TypeError):
                 raise ConfigError(
-                    'Failed to coerce {} to {} for {}'.format(
-                        value, current_type.__name__, key
-                    )
+                    f'Failed to coerce {value} to {current_type.__name__} for {key}'
                 )
         config[key] = value
 
@@ -236,7 +234,7 @@ def parse_user_factor(config, user_keys, user_exprs, eval_locals=None):
     user_values = _safe_eval(user_exprs, eval_locals=eval_locals)
     values = []
     if not isinstance(user_values, Sequence):
-        raise ConfigError('Factor value not a sequence "{}"'.format(user_values))
+        raise ConfigError(f'Factor value not a sequence "{user_values}"')
     for user_items in user_values:
         if len(current) == 1:
             user_items = [user_items]
@@ -248,7 +246,7 @@ def parse_user_factor(config, user_keys, user_exprs, eval_locals=None):
                     item = current_type(item)
                 except (ValueError, TypeError):
                     raise ConfigError(
-                        'Failed to coerce {} to {}'.format(item, current_type.__name__)
+                        f'Failed to coerce {item} to {current_type.__name__}'
                     )
             items.append(item)
         values.append(items)
@@ -337,7 +335,7 @@ def fuzzy_lookup(config, fuzzy_key):
     try:
         k = fuzzy_match(config, fuzzy_key)
     except KeyError as e:
-        raise ConfigError('Invalid config key: {}'.format(e))
+        raise ConfigError(f'Invalid config key: {e}')
     else:
         return k, config[k]
 
@@ -383,7 +381,7 @@ def _safe_eval(expr, coerce_type=None, eval_locals=None):
         if coerce_type and issubclass(coerce_type, str):
             value = expr
         else:
-            raise ConfigError('Failed evaluation of expression "{}"'.format(expr))
+            raise ConfigError(f'Failed evaluation of expression "{expr}"')
 
     if coerce_type:
         if expr in eval_locals and not isinstance(value, coerce_type):
@@ -393,9 +391,8 @@ def _safe_eval(expr, coerce_type=None, eval_locals=None):
                 value = coerce_type(value)
             except (ValueError, TypeError):
                 raise ConfigError(
-                    'Failed to coerce expression {} to {}'.format(
-                        _quote_expr(expr), coerce_type.__name__
-                    )
+                    f'Failed to coerce expression {_quote_expr(expr)} to '
+                    f'{coerce_type.__name__}'
                 )
     return value
 

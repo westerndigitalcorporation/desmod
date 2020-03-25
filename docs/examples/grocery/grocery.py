@@ -54,12 +54,12 @@ class Top(Component):
             gtkw.signals_width(300)
             gtkw.trace('customers.active', **analog_kwargs)
             for i in range(env.config['grocery.num_lanes']):
-                with gtkw.group('Lane{}'.format(i)):
-                    scope = 'grocery.lane{}'.format(i)
-                    gtkw.trace(scope + '.customer_queue', **analog_kwargs)
-                    gtkw.trace(scope + '.feed_belt', **analog_kwargs)
-                    gtkw.trace(scope + '.bag_area', **analog_kwargs)
-                    gtkw.trace(scope + '.baggers', **analog_kwargs)
+                with gtkw.group(f'Lane{i}'):
+                    scope = f'grocery.lane{i}'
+                    gtkw.trace(f'{scope}.customer_queue', **analog_kwargs)
+                    gtkw.trace(f'{scope}.feed_belt', **analog_kwargs)
+                    gtkw.trace(f'{scope}.bag_area', **analog_kwargs)
+                    gtkw.trace(f'{scope}.baggers', **analog_kwargs)
 
     def elab_hook(self):
         # We generate DOT representations of the component hierarchy. It is
@@ -211,7 +211,7 @@ class Bagger(Component):
         elif policy == 'fixed-lane':
             self.add_process(self.policy_fixed_lane)
         else:
-            raise ValueError('invalid bagger.policy {}'.format(policy))
+            raise ValueError(f'invalid bagger.policy {policy}')
 
     def policy_float_aggressive(self):
         """Assign bagger to the first lane with any baggable items.

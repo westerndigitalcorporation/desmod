@@ -176,8 +176,8 @@ def _comp_hierarchy(
     if len(component_group) == 1:
         label_name = _comp_name(component)
     else:
-        label_name = '{}..{}'.format(
-            _comp_name(component_group[0]), _comp_name(component_group[-1])
+        label_name = (
+            f'{_comp_name(component_group[0])}..{_comp_name(component_group[-1])}'
         )
 
     if component._children and show_hierarchy:
@@ -185,13 +185,11 @@ def _comp_hierarchy(
     else:
         border_style = 'rounded'
     if colorscheme:
-        style = 'style="{},filled",fillcolor="/{}/{}"'.format(
-            border_style, colorscheme, _level
-        )
+        style = f'style="{border_style},filled",fillcolor="/{colorscheme}/{_level}"'
     else:
         style = 'style=' + border_style
 
-    node_lines = ['"{}" [shape=box,{},label=<'.format(_comp_scope(component), style)]
+    node_lines = [f'"{_comp_scope(component)}" [shape=box,{style},label=<']
 
     label_lines = _comp_label(component, label_name, show_processes)
     if len(label_lines) == 1:
@@ -206,14 +204,14 @@ def _comp_hierarchy(
         if show_hierarchy:
             indent = '    '
             lines = [
-                'subgraph "{}" {{'.format(_cluster_id(component)),
-                indent + 'label=<{}>'.format(_cluster_label(component_group)),
+                f'subgraph "{_cluster_id(component)}" {{',
+                indent + f'{indent}label=<{_cluster_label(component_group)}>',
             ]
             if colorscheme:
                 lines.extend(
                     [
                         indent + 'style="filled"',
-                        indent + 'fillcolor="/{}/{}"'.format(colorscheme, _level),
+                        indent + f'fillcolor="/{colorscheme}/{_level}"',
                     ]
                 )
         else:
@@ -251,7 +249,7 @@ def _comp_connections(component):
         ):
             src = conn_obj[0]
         else:
-            attrs['label'] = '"{}"'.format(conn)
+            attrs['label'] = f'"{conn}"'
             attrs['color'] = attrs['fontcolor'] = next(_color_cycle)
 
         lines.append(
@@ -288,24 +286,22 @@ def _cluster_id(component):
 
 def _cluster_label(component_group):
     if len(component_group) == 1:
-        return '<b>{}</b>'.format(_comp_name(component_group[0]))
+        return f'<b>{_comp_name(component_group[0])}</b>'
     else:
-        return '<b>{}..{}</b>'.format(component_group[0].name, component_group[-1].name)
+        return f'<b>{component_group[0].name}..{component_group[-1].name}</b>'
 
 
 def _comp_label(component, label_name, show_processes):
-    label_lines = ['<b>{}</b><br align="left"/>'.format(label_name)]
+    label_lines = [f'<b>{label_name}</b><br align="left"/>']
     if show_processes and component._processes:
         label_lines.append('<br/>')
         proc_funcs = set()
         for proc_func, _, _ in component._processes:
             if proc_func not in proc_funcs:
                 proc_funcs.add(proc_func)
-                label_lines.append(
-                    '<i>{}</i><br align="left"/>'.format(proc_func.__name__)
-                )
+                label_lines.append(f'<i>{proc_func.__name__}</i><br align="left"/>')
     return label_lines
 
 
 def _join_attrs(attrs):
-    return ','.join('{}={}'.format(k, v) for k, v in sorted(attrs.items()))
+    return ','.join(f'{k}={v}' for k, v in sorted(attrs.items()))
