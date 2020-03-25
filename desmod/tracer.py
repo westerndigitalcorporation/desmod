@@ -1,18 +1,19 @@
 from __future__ import print_function
+
 import os
 import re
 import sqlite3
 import sys
 import traceback
 
-import simpy
 from vcd import VCDWriter
+import simpy
 
 from . import probe
-from .util import partial_format
-from .timescale import parse_time, scale_time
-from .queue import Queue
 from .pool import Pool
+from .queue import Queue
+from .timescale import parse_time, scale_time
+from .util import partial_format
 
 
 class Tracer(object):

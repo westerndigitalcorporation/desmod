@@ -1,4 +1,10 @@
-pyvcd >= 0.1.1
-PyYAML >= 3.11
-simpy >= 3.0.8
-six >= 1.10.0
+colorama
+flake8
+isort
+progressbar2
+pytest
+pytest-cov
+setuptools_scm
+Sphinx
+sphinx-rtd-theme
+tox

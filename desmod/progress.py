@@ -1,9 +1,12 @@
-from __future__ import print_function, division
+from __future__ import division, print_function
+
 from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 import sys
 import timeit
+
+from desmod.timescale import parse_time, scale_time
 
 try:
     import progressbar
@@ -13,8 +16,6 @@ try:
     import colorama
 except ImportError:
     colorama = None
-
-from desmod.timescale import parse_time, scale_time
 
 
 @contextmanager

@@ -12,19 +12,20 @@ customer profiles.
 
 """
 from __future__ import division
+
 from argparse import ArgumentParser
 from datetime import timedelta
 from functools import partial
 from itertools import count
 
-from desmod.config import apply_user_overrides, parse_user_factors
+from simpy import Container, Resource
+from vcd.gtkw import GTKWSave
+
 from desmod.component import Component
+from desmod.config import apply_user_overrides, parse_user_factors
 from desmod.dot import generate_dot
 from desmod.queue import Queue
 from desmod.simulation import simulate, simulate_factors
-
-from simpy import Container, Resource
-from vcd.gtkw import GTKWSave
 
 
 class Top(Component):

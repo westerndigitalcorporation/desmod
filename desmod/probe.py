@@ -3,8 +3,8 @@ import types
 import simpy
 import six
 
-from desmod.queue import Queue
 from desmod.pool import Pool
+from desmod.queue import Queue
 
 
 def attach(scope, target, callbacks, **hints):

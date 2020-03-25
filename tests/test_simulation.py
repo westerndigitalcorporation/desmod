@@ -1,14 +1,18 @@
 import json
 import os
-import pytest
 
+import pytest
 import yaml
 
 from desmod.component import Component
-from desmod.simulation import (simulate, simulate_factors, simulate_many,
-                               SimEnvironment, SimStopEvent)
+from desmod.simulation import (
+    SimEnvironment,
+    SimStopEvent,
+    simulate,
+    simulate_factors,
+    simulate_many,
+)
 import desmod.progress
-
 
 pytestmark = pytest.mark.usefixtures('cleandir')
 

@@ -1,26 +1,28 @@
 """Simulation model with batteries included."""
 
 from __future__ import division
-from contextlib import closing
-from multiprocessing import cpu_count, Process, Queue
-from pprint import pprint
-from six.moves import filter
-from threading import Thread
 
+from contextlib import closing
+from multiprocessing import Process, Queue, cpu_count
+from pprint import pprint
+from threading import Thread
 import json
 import os
 import random
 import shutil
 import timeit
 
+from six.moves import filter
 import simpy
 import six
 import yaml
 
 from desmod.config import factorial_config
-from desmod.progress import (standalone_progress_manager,
-                             get_multi_progress_manager,
-                             consume_multi_progress)
+from desmod.progress import (
+    consume_multi_progress,
+    get_multi_progress_manager,
+    standalone_progress_manager,
+)
 from desmod.timescale import parse_time, scale_time
 from desmod.tracer import TraceManager
 

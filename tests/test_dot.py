@@ -1,10 +1,10 @@
 import os
+
 import pytest
 
-from desmod.dot import component_to_dot, generate_dot
 from desmod.component import Component
+from desmod.dot import component_to_dot, generate_dot
 from desmod.simulation import SimEnvironment
-
 
 pytestmark = pytest.mark.usefixtures('cleandir')
 

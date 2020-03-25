@@ -1,15 +1,18 @@
 import sys
+
 import pytest
 
-from desmod.config import (ConfigError,
-                           NamedManager,
-                           apply_user_config,
-                           apply_user_overrides,
-                           fuzzy_lookup,
-                           factorial_config,
-                           parse_user_factor,
-                           parse_user_factors,
-                           _safe_eval)
+from desmod.config import (
+    ConfigError,
+    NamedManager,
+    _safe_eval,
+    apply_user_config,
+    apply_user_overrides,
+    factorial_config,
+    fuzzy_lookup,
+    parse_user_factor,
+    parse_user_factors,
+)
 
 
 @pytest.fixture

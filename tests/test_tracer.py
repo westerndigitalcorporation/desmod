@@ -1,12 +1,13 @@
 import os
 import sqlite3
 
+import pytest
+import simpy
+
 from desmod.component import Component
 from desmod.pool import Pool
 from desmod.queue import Queue
 from desmod.simulation import simulate
-import pytest
-import simpy
 
 pytestmark = pytest.mark.usefixtures('cleandir')
 

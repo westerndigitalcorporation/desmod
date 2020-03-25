@@ -1,9 +1,9 @@
 import pytest
+import simpy
 
 from desmod.pool import Pool, PriorityPool
 from desmod.probe import attach
 from desmod.queue import Queue
-import simpy
 
 
 @pytest.fixture

@@ -18,12 +18,13 @@ from __future__ import division
 
 from itertools import count, cycle
 
+from simpy import Resource
+
 from desmod.component import Component
 from desmod.dot import generate_dot
 from desmod.pool import Pool
 from desmod.queue import Queue
 from desmod.simulation import simulate
-from simpy import Resource
 
 
 class Top(Component):
