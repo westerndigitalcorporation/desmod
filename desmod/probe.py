@@ -1,14 +1,23 @@
 from functools import wraps
-import types
+from types import MethodType
+from typing import Any, Callable, Iterable, Union
 
 import simpy
 
 from desmod.pool import Pool
-from desmod.queue import Queue
+from desmod.queue import ItemType, Queue
+
+ProbeCallback = Callable[[Any], None]
+ProbeCallbacks = Iterable[ProbeCallback]
+ProbeTarget = Union[
+    Pool, Queue[ItemType], simpy.Resource, simpy.Store, simpy.Container, MethodType
+]
 
 
-def attach(scope, target, callbacks, **hints):
-    if isinstance(target, types.MethodType):
+def attach(
+    scope: str, target: ProbeTarget, callbacks: ProbeCallbacks, **hints: Any
+) -> None:
+    if isinstance(target, MethodType):
         _attach_method(target, callbacks)
     elif isinstance(target, simpy.Container):
         _attach_container_level(target, callbacks)
@@ -33,7 +42,7 @@ def attach(scope, target, callbacks, **hints):
         raise TypeError(f'Cannot probe {scope} of type {type(target)}')
 
 
-def _attach_method(method, callbacks):
+def _attach_method(method: MethodType, callbacks: ProbeCallbacks) -> None:
     def make_wrapper(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -47,7 +56,9 @@ def _attach_method(method, callbacks):
     setattr(method.__self__, method.__func__.__name__, make_wrapper(method))
 
 
-def _attach_container_level(container, callbacks):
+def _attach_container_level(
+    container: simpy.Container, callbacks: ProbeCallbacks
+) -> None:
     def make_wrapper(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -61,11 +72,11 @@ def _attach_container_level(container, callbacks):
 
         return wrapper
 
-    container._do_get = make_wrapper(container._do_get)
-    container._do_put = make_wrapper(container._do_put)
+    container._do_get = make_wrapper(container._do_get)  # type: ignore
+    container._do_put = make_wrapper(container._do_put)  # type: ignore
 
 
-def _attach_store_items(store, callbacks):
+def _attach_store_items(store: simpy.Store, callbacks: ProbeCallbacks) -> None:
     def make_wrapper(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -79,11 +90,11 @@ def _attach_store_items(store, callbacks):
 
         return wrapper
 
-    store._do_get = make_wrapper(store._do_get)
-    store._do_put = make_wrapper(store._do_put)
+    store._do_get = make_wrapper(store._do_get)  # type: ignore
+    store._do_put = make_wrapper(store._do_put)  # type: ignore
 
 
-def _attach_resource_users(resource, callbacks):
+def _attach_resource_users(resource: simpy.Resource, callbacks: ProbeCallbacks) -> None:
     def make_wrapper(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -97,11 +108,11 @@ def _attach_resource_users(resource, callbacks):
 
         return wrapper
 
-    resource._do_get = make_wrapper(resource._do_get)
-    resource._do_put = make_wrapper(resource._do_put)
+    resource._do_get = make_wrapper(resource._do_get)  # type: ignore
+    resource._do_put = make_wrapper(resource._do_put)  # type: ignore
 
 
-def _attach_resource_queue(resource, callbacks):
+def _attach_resource_queue(resource: simpy.Resource, callbacks: ProbeCallbacks) -> None:
     def make_wrapper(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -115,11 +126,11 @@ def _attach_resource_queue(resource, callbacks):
 
         return wrapper
 
-    resource.request = make_wrapper(resource.request)
-    resource._trigger_put = make_wrapper(resource._trigger_put)
+    resource.request = make_wrapper(resource.request)  # type: ignore
+    resource._trigger_put = make_wrapper(resource._trigger_put)  # type: ignore
 
 
-def _attach_queue_size(queue, callbacks):
+def _attach_queue_size(queue: Queue[ItemType], callbacks: ProbeCallbacks) -> None:
     def hook():
         for callback in callbacks:
             callback(queue.size)
@@ -127,7 +138,7 @@ def _attach_queue_size(queue, callbacks):
     queue._put_hook = queue._get_hook = hook
 
 
-def _attach_queue_remaining(queue, callbacks):
+def _attach_queue_remaining(queue: Queue[ItemType], callbacks: ProbeCallbacks) -> None:
     def hook():
         for callback in callbacks:
             callback(queue.remaining)
@@ -135,7 +146,7 @@ def _attach_queue_remaining(queue, callbacks):
     queue._put_hook = queue._get_hook = hook
 
 
-def _attach_pool_level(pool, callbacks):
+def _attach_pool_level(pool: Pool, callbacks: ProbeCallbacks) -> None:
     def hook():
         for callback in callbacks:
             callback(pool.level)
@@ -143,7 +154,7 @@ def _attach_pool_level(pool, callbacks):
     pool._put_hook = pool._get_hook = hook
 
 
-def _attach_pool_remaining(pool, callbacks):
+def _attach_pool_remaining(pool: Pool, callbacks: ProbeCallbacks) -> None:
     def hook():
         for callback in callbacks:
             callback(pool.remaining)

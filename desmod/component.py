@@ -63,6 +63,14 @@ component could, for example, be used as a connection object.
 
 """
 
+from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple
+
+import simpy
+
+from .simulation import ResultDict, SimEnvironment
+
+ProcessGenerator = Callable[..., Generator[simpy.Event, Any, None]]
+
 
 class ConnectError(Exception):
     pass
@@ -84,13 +92,23 @@ class Component:
     """
 
     #: Short/friendly name used in the scope (class attribute).
-    base_name = ''
+    base_name: str = ''
 
-    def __init__(self, parent, env=None, name=None, index=None):
-        assert parent or env
-
+    def __init__(
+        self,
+        parent: Optional['Component'],
+        env: Optional[SimEnvironment] = None,
+        name: Optional[str] = None,
+        index: Optional[int] = None,
+    ) -> None:
         #: The simulation environment; a :class:`SimEnvironment` instance.
-        self.env = parent.env if env is None else env
+        self.env: SimEnvironment
+        if env is not None:
+            self.env = env
+        elif parent is not None:
+            self.env = parent.env
+        else:
+            raise AssertionError('either parent or env must be non-None')
 
         #: The component name (str).
         self.name = (self.base_name if name is None else name) + (
@@ -101,9 +119,10 @@ class Component:
         #: Will be None for un-grouped Components.
         self.index = index
 
+        #: String indicating the full scope of Component instance in the
+        #: Component DAG.
+        self.scope: str
         if parent is None or not parent.scope:
-            #: String indicating the full scope of Component instance in the
-            #: Component DAG.
             self.scope = self.name
         else:
             self.scope = f'{parent.scope}.{self.name}'
@@ -111,29 +130,31 @@ class Component:
         if parent:
             parent._children.append(self)
 
-        self._children = []
-        self._processes = []
-        self._connections = []
-        self._not_connected = set()
+        self._children: List['Component'] = []
+        self._processes: List[
+            Tuple[ProcessGenerator, Tuple[Any, ...], Dict[str, Any]]
+        ] = []
+        self._connections: List[Any] = []
+        self._not_connected: Set[str] = set()
 
         #: Log an error message.
-        self.error = self.env.tracemgr.get_trace_function(
+        self.error: Callable[..., None] = self.env.tracemgr.get_trace_function(
             self.scope, log={'level': 'ERROR'}
         )
         #: Log a warning message.
-        self.warn = self.env.tracemgr.get_trace_function(
+        self.warn: Callable[..., None] = self.env.tracemgr.get_trace_function(
             self.scope, log={'level': 'WARNING'}
         )
         #: Log an informative message.
-        self.info = self.env.tracemgr.get_trace_function(
+        self.info: Callable[..., None] = self.env.tracemgr.get_trace_function(
             self.scope, log={'level': 'INFO'}
         )
         #: Log a debug message.
-        self.debug = self.env.tracemgr.get_trace_function(
+        self.debug: Callable[..., None] = self.env.tracemgr.get_trace_function(
             self.scope, log={'level': 'DEBUG'}
         )
 
-    def add_process(self, process_func, *args, **kwargs):
+    def add_process(self, g: ProcessGenerator, *args: Any, **kwargs: Any) -> None:
         """Add a process method to be run at simulation-time.
 
         Subclasses should call this in `__init__()` to declare the process
@@ -145,9 +166,9 @@ class Component:
         :param kwargs: keyword arguments to pass to `process_func`.
 
         """
-        self._processes.append((process_func, args, kwargs))
+        self._processes.append((g, args, kwargs))
 
-    def add_processes(self, *process_funcs):
+    def add_processes(self, *generators: ProcessGenerator) -> None:
         """Declare multiple processes at once.
 
         This is a convenience wrapper for :meth:`add_process()` that may be
@@ -157,10 +178,10 @@ class Component:
         :param process_funcs: argument-less process functions (methods).
 
         """
-        for process_func in process_funcs:
-            self.add_process(process_func)
+        for g in generators:
+            self.add_process(g)
 
-    def add_connections(self, *connection_names):
+    def add_connections(self, *connection_names: str) -> None:
         """Declare names of externally-provided connection objects.
 
         The named connections must be connected (assigned) by an ancestor at
@@ -170,8 +191,13 @@ class Component:
         self._not_connected.update(connection_names)
 
     def connect(
-        self, dst, dst_connection, src=None, src_connection=None, conn_obj=None
-    ):
+        self,
+        dst: 'Component',
+        dst_connection: Any,
+        src: Optional['Component'] = None,
+        src_connection: Optional[Any] = None,
+        conn_obj: Optional[Any] = None,
+    ) -> None:
         """Assign connection object from source to destination component.
 
         At elaboration-time, Components must call `connect()` to make the
@@ -221,7 +247,7 @@ class Component:
                 f'connection "{dst_connection}"'
             )
 
-    def connect_children(self):
+    def connect_children(self) -> None:
         """Make connections for descendant components.
 
         This method must be overridden in Component subclasses that need to
@@ -235,18 +261,18 @@ class Component:
                 '{0}.connect_children()'.format(type(self).__name__)
             )
 
-    def auto_probe(self, name, target=None, **hints):
+    def auto_probe(self, name: str, target: Any = None, **hints: Any) -> None:
         if target is None:
             target = getattr(self, name)
         target_scope = '.'.join([self.scope, name])
         self.env.tracemgr.auto_probe(target_scope, target, **hints)
 
-    def get_trace_function(self, name, **hints):
+    def get_trace_function(self, name: str, **hints: Any) -> Callable[..., None]:
         target_scope = '.'.join([self.scope, name])
         return self.env.tracemgr.get_trace_function(target_scope, **hints)
 
     @classmethod
-    def pre_init(cls, env):
+    def pre_init(cls, env: SimEnvironment) -> None:
         """Override-able class method called prior to model initialization.
 
         Component subclasses may override this classmethod to gain access
@@ -256,7 +282,7 @@ class Component:
         """
         pass
 
-    def elaborate(self):
+    def elaborate(self) -> None:
         """Recursively elaborate the model.
 
         The elaboration phase prepares the model for simulation. Descendant
@@ -275,7 +301,7 @@ class Component:
             self.env.process(proc(*args, **kwargs))
         self.elab_hook()
 
-    def elab_hook(self):
+    def elab_hook(self) -> None:
         """Hook called after elaboration and before simulation phase.
 
         Component subclasses may override :meth:`elab_hook()` to inject
@@ -284,13 +310,13 @@ class Component:
         """
         pass
 
-    def post_simulate(self):
+    def post_simulate(self) -> None:
         """Recursively run post-simulation hooks."""
         for child in self._children:
             child.post_simulate()
         self.post_sim_hook()
 
-    def post_sim_hook(self):
+    def post_sim_hook(self) -> None:
         """Hook called after simulation completes.
 
         Component subclasses may override `post_sim_hook()` to inject behavior
@@ -301,7 +327,7 @@ class Component:
         """
         pass
 
-    def get_result(self, result):
+    def get_result(self, result: ResultDict) -> None:
         """Recursively compose simulation result dict.
 
         Upon successful completion of the simulation phase, each component in
@@ -317,6 +343,6 @@ class Component:
             child.get_result(result)
         self.get_result_hook(result)
 
-    def get_result_hook(self, result):
+    def get_result_hook(self, result: ResultDict) -> None:
         """Hook called after result is composed by descendant components."""
         pass

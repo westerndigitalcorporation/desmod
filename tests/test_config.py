@@ -179,12 +179,12 @@ def test_safe_eval_dict():
 @pytest.mark.parametrize(
     'user_keys, user_exprs, expected',
     [
-        ('foo', '1,2,3', [['a.b.foo'], [[1], [2], [3]]]),
-        ('bar', '1.2, 3, 4.5', [['a.b.bar'], [[1.2], [3.0], [4.5]]]),
-        ('b.baz', '"abc"', [['a.b.baz'], [['a'], ['b'], ['c']]]),
-        ('b.baz', '"abc","def"', [['a.b.baz'], [['abc'], ['def']]]),
-        ('d.baz', '1, "y", 0', [['c.d.baz'], [[True], [True], [False]]]),
-        ('foo,bar', '(1,1),(2,2)', [['a.b.foo', 'a.b.bar'], [[1, 1.0], [2, 2.0]]]),
+        ('foo', '1,2,3', (['a.b.foo'], [[1], [2], [3]])),
+        ('bar', '1.2, 3, 4.5', (['a.b.bar'], [[1.2], [3.0], [4.5]])),
+        ('b.baz', '"abc"', (['a.b.baz'], [['a'], ['b'], ['c']])),
+        ('b.baz', '"abc","def"', (['a.b.baz'], [['abc'], ['def']])),
+        ('d.baz', '1, "y", 0', (['c.d.baz'], [[True], [True], [False]])),
+        ('foo,bar', '(1,1),(2,2)', (['a.b.foo', 'a.b.bar'], [[1, 1.0], [2, 2.0]])),
     ],
 )
 def test_parse_user_factor(user_keys, user_exprs, expected):
@@ -215,8 +215,8 @@ def test_parse_user_factors(config):
 
     factors = parse_user_factors(config, user_factors)
 
-    assert factors[0] == [['a.b.foo'], [[1], [2], [3]]]
-    assert factors[1] == [['a.b.bar'], [[2.0], [4.0]]]
+    assert factors[0] == (['a.b.foo'], [[1], [2], [3]])
+    assert factors[1] == (['a.b.bar'], [[2.0], [4.0]])
 
 
 @pytest.mark.parametrize(
@@ -265,12 +265,12 @@ def test_factorial_config_special():
     ]
 
     expected = [
-        {'k0': 0, 'k1': 1, 'k2': 4, 'special': [['k0', 0], ['k1', 1], ['k2', 4]]},
-        {'k0': 0, 'k1': 1, 'k2': 5, 'special': [['k0', 0], ['k1', 1], ['k2', 5]]},
-        {'k0': 0, 'k1': 1, 'k2': 6, 'special': [['k0', 0], ['k1', 1], ['k2', 6]]},
-        {'k0': 2, 'k1': 3, 'k2': 4, 'special': [['k0', 2], ['k1', 3], ['k2', 4]]},
-        {'k0': 2, 'k1': 3, 'k2': 5, 'special': [['k0', 2], ['k1', 3], ['k2', 5]]},
-        {'k0': 2, 'k1': 3, 'k2': 6, 'special': [['k0', 2], ['k1', 3], ['k2', 6]]},
+        {'k0': 0, 'k1': 1, 'k2': 4, 'special': [('k0', 0), ('k1', 1), ('k2', 4)]},
+        {'k0': 0, 'k1': 1, 'k2': 5, 'special': [('k0', 0), ('k1', 1), ('k2', 5)]},
+        {'k0': 0, 'k1': 1, 'k2': 6, 'special': [('k0', 0), ('k1', 1), ('k2', 6)]},
+        {'k0': 2, 'k1': 3, 'k2': 4, 'special': [('k0', 2), ('k1', 3), ('k2', 4)]},
+        {'k0': 2, 'k1': 3, 'k2': 5, 'special': [('k0', 2), ('k1', 3), ('k2', 5)]},
+        {'k0': 2, 'k1': 3, 'k2': 6, 'special': [('k0', 2), ('k1', 3), ('k2', 6)]},
     ]
 
     fc = factorial_config({}, factors, 'special')

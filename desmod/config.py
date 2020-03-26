@@ -23,24 +23,43 @@ Most functions in this module are provided to support building user interfaces
 for configuring a model.
 
 """
-from collections import namedtuple
 from collections.abc import Sequence
 from copy import deepcopy
 from itertools import product
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Type,
+)
 import builtins
+
+ConfigDict = Dict[str, Any]
+ConfigFactor = Tuple[List[str], List[Any]]
 
 
 class ConfigError(Exception):
     """Exception raised for a variety of configuration errors."""
 
 
-class NamedConfig(namedtuple('NamedConfig', 'category name doc depend config')):
+class NamedConfig(NamedTuple):
     """Named configuration group details.
 
     Iterating a :class:`NamedManager` instance yields ``NamedConfig``
     instances.
 
     """
+
+    category: str
+    name: str
+    doc: str
+    depend: List[str]
+    config: ConfigDict
 
 
 class NamedManager:
@@ -56,10 +75,17 @@ class NamedManager:
 
     """
 
-    def __init__(self):
-        self._named_configs = {}
+    def __init__(self) -> None:
+        self._named_configs: Dict[str, NamedConfig] = {}
 
-    def name(self, name, depend=None, config=None, category='', doc=''):
+    def name(
+        self,
+        name: str,
+        depend: Optional[List[str]] = None,
+        config: Optional[ConfigDict] = None,
+        category: str = '',
+        doc: str = '',
+    ) -> None:
         """Declare a new configuration group.
 
         A configuration group consists of a name, a list of dependencies, and a
@@ -81,13 +107,13 @@ class NamedManager:
             config = {}
         self._named_configs[name] = NamedConfig(category, name, doc, depend, config)
 
-    def resolve(self, *names):
+    def resolve(self, *names: str) -> ConfigDict:
         """Resolve named configs into a new config object."""
-        resolved = {}
+        resolved: ConfigDict = {}
         self._resolve(resolved, *names)
         return resolved
 
-    def _resolve(self, resolved, *names):
+    def _resolve(self, resolved: ConfigDict, *names: str) -> None:
         for name in names:
             if name not in self._named_configs:
                 raise ConfigError(f'unknown named config: {name}')
@@ -95,12 +121,12 @@ class NamedManager:
             self._resolve(resolved, *nc.depend)
             resolved.update(nc.config)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[NamedConfig]:
         """Iterate named config tuples."""
         yield from self._named_configs.values()
 
 
-def apply_user_config(config, user_config):
+def apply_user_config(config: ConfigDict, user_config: ConfigDict) -> None:
     """Apply user-provided configuration to a configuration.
 
     Each key/value from `user_config` is validated and then used to override
@@ -132,7 +158,11 @@ def apply_user_config(config, user_config):
         config[key] = value
 
 
-def apply_user_overrides(config, overrides, eval_locals=None):
+def apply_user_overrides(
+    config: ConfigDict,
+    overrides: Iterable[Tuple[str, str]],
+    eval_locals: Optional[Dict[str, Any]] = None,
+) -> None:
     """Apply user-provided overrides to a configuration.
 
     The user-provided `overrides` list are first verified for validity and
@@ -160,7 +190,9 @@ def apply_user_overrides(config, overrides, eval_locals=None):
         config[key] = value
 
 
-def parse_user_factors(config, user_factors, eval_locals=None):
+def parse_user_factors(
+    config: ConfigDict, user_factors, eval_locals: Optional[Dict[str, Any]] = None
+) -> List[ConfigFactor]:
     """Safely parse user-provided configuration factors.
 
     A configuration factor consists of an n-tuple of configuration keys along
@@ -190,7 +222,12 @@ def parse_user_factors(config, user_factors, eval_locals=None):
     ]
 
 
-def parse_user_factor(config, user_keys, user_exprs, eval_locals=None):
+def parse_user_factor(
+    config: ConfigDict,
+    user_keys: str,
+    user_exprs: str,
+    eval_locals: Optional[Dict[str, Any]] = None,
+) -> ConfigFactor:
     """Safely parse a user-provided configuration factor.
 
     Example:
@@ -250,10 +287,14 @@ def parse_user_factor(config, user_keys, user_exprs, eval_locals=None):
                     )
             items.append(item)
         values.append(items)
-    return [[key for key, _ in current], values]
+    return ([key for key, _ in current], values)
 
 
-def factorial_config(base_config, factors, special_key=None):
+def factorial_config(
+    base_config: ConfigDict,
+    factors: Iterable[ConfigFactor],
+    special_key: Optional[str] = None,
+) -> Iterator[ConfigDict]:
     """Generate configurations from base config and config factors.
 
     :param dict base_config:
@@ -279,18 +320,18 @@ def factorial_config(base_config, factors, special_key=None):
 
     for keys_values_lists in product(*unrolled_factors):
         config = deepcopy(base_config)
-        special = []
+        special: List[Tuple[str, Any]] = []
         if special_key:
             config[special_key] = special
         for keys, values in keys_values_lists:
             for key, value in zip(keys, values):
                 config[key] = value
                 if special_key:
-                    special.append([key, value])
+                    special.append((key, value))
         yield config
 
 
-def fuzzy_match(keys, fuzzy_key):
+def fuzzy_match(keys: Iterable[str], fuzzy_key: str) -> str:
     """Match a fuzzy key against sequence of canonical key names.
 
     :param keys: Sequence of canonical key names.
@@ -318,7 +359,7 @@ def fuzzy_match(keys, fuzzy_key):
         raise KeyError(fuzzy_key + ' is ambiguous')
 
 
-def fuzzy_lookup(config, fuzzy_key):
+def fuzzy_lookup(config: ConfigDict, fuzzy_key: str) -> Tuple[str, Any]:
     """Lookup a config key/value using a partially specified (fuzzy) key.
 
     The lookup will succeed iff the provided `fuzzy_key` unambiguously matches
@@ -372,7 +413,11 @@ _default_eval_locals = {
 }
 
 
-def _safe_eval(expr, coerce_type=None, eval_locals=None):
+def _safe_eval(
+    expr: str,
+    coerce_type: Optional[Type] = None,
+    eval_locals: Optional[Dict[str, Any]] = None,
+) -> Any:
     if eval_locals is None:
         eval_locals = _default_eval_locals
     try:
@@ -397,6 +442,6 @@ def _safe_eval(expr, coerce_type=None, eval_locals=None):
     return value
 
 
-def _quote_expr(expr):
+def _quote_expr(expr: str) -> str:
     quote_char = "'" if expr.startswith('"') else '"'
     return ''.join([quote_char, expr, quote_char])

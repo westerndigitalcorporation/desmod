@@ -1,3 +1,4 @@
+from typing import Optional, Tuple, Union
 import re
 
 _unit_map = {'s': 1e0, 'ms': 1e3, 'us': 1e6, 'ns': 1e9, 'ps': 1e12, 'fs': 1e15}
@@ -6,8 +7,10 @@ _num_re = r'[-+]? (?: \d*\.\d+ | \d+\.?\d* ) (?: [eE] [-+]? \d+)?'
 
 _timescale_re = re.compile(rf'(?P<num>{_num_re})?\s?(?P<unit> [fpnum]? s)?', re.VERBOSE)
 
+TimeValue = Tuple[Union[int, float], str]
 
-def parse_time(time_str, default_unit=None):
+
+def parse_time(time_str: str, default_unit: Optional[str] = None) -> TimeValue:
     """Parse a string containing a time magnitude and optional unit.
 
     :param str time_str: Time string to parse.
@@ -27,6 +30,7 @@ def parse_time(time_str, default_unit=None):
         raise ValueError(f'Invalid timescale string "{time_str}"')
     if match.group('num'):
         num_str = match.group('num')
+        num: Union[int, float]
         try:
             num = int(num_str)
         except ValueError:
@@ -44,7 +48,7 @@ def parse_time(time_str, default_unit=None):
     return num, unit
 
 
-def scale_time(from_time, to_time):
+def scale_time(from_time: TimeValue, to_time: TimeValue) -> Union[int, float]:
     """Scale time values.
 
     :param tuple from_time: `(magnitude, unit)` tuple to be scaled.

@@ -26,8 +26,10 @@ can produce a more compact layout::
 
 """
 from itertools import cycle, groupby
+from typing import Dict, Iterator, List, Optional, Sequence
 
 from desmod.component import Component
+from desmod.config import ConfigDict
 
 _color_cycle = cycle(
     [
@@ -42,7 +44,7 @@ _color_cycle = cycle(
 )
 
 
-def generate_dot(top, config=None):
+def generate_dot(top: Component, config: Optional[ConfigDict] = None) -> None:
     """Generate dot files based on 'sim.dot' configuration.
 
     The ``sim.dot.enable`` configuration controls whether any dot file
@@ -68,11 +70,11 @@ def generate_dot(top, config=None):
     """
     config = top.env.config if config is None else config
 
-    enable = config.setdefault('sim.dot.enable', False)
-    colorscheme = config.setdefault('sim.dot.colorscheme', '')
-    all_filename = config.setdefault('sim.dot.all.file', 'all.dot')
-    hier_filename = config.setdefault('sim.dot.hier.file', 'hier.dot')
-    conn_filename = config.setdefault('sim.dot.conn.file', 'conn.dot')
+    enable: bool = config.setdefault('sim.dot.enable', False)
+    colorscheme: str = config.setdefault('sim.dot.colorscheme', '')
+    all_filename: str = config.setdefault('sim.dot.all.file', 'all.dot')
+    hier_filename: str = config.setdefault('sim.dot.hier.file', 'hier.dot')
+    conn_filename: str = config.setdefault('sim.dot.conn.file', 'conn.dot')
 
     if not enable:
         return
@@ -115,8 +117,12 @@ def generate_dot(top, config=None):
 
 
 def component_to_dot(
-    top, show_hierarchy=True, show_connections=True, show_processes=True, colorscheme=''
-):
+    top: Component,
+    show_hierarchy: bool = True,
+    show_connections: bool = True,
+    show_processes: bool = True,
+    colorscheme: str = '',
+) -> str:
     """Produce a dot stream from a component hierarchy.
 
     The DOT language representation of the component instance hierarchy can
@@ -165,13 +171,13 @@ def component_to_dot(
 
 
 def _comp_hierarchy(
-    component_group,
-    show_hierarchy,
-    show_connections,
-    show_processes,
-    colorscheme,
-    _level=1,
-):
+    component_group: Sequence[Component],
+    show_hierarchy: bool,
+    show_connections: bool,
+    show_processes: bool,
+    colorscheme: str,
+    _level: int = 1,
+) -> List[str]:
     component = component_group[0]
     if len(component_group) == 1:
         label_name = _comp_name(component)
@@ -236,7 +242,7 @@ def _comp_hierarchy(
         return lines
 
 
-def _comp_connections(component):
+def _comp_connections(component: Component) -> List[str]:
     lines = []
     for conn, src, src_conn, conn_obj in component._connections:
         attrs = {}
@@ -266,32 +272,34 @@ def _comp_connections(component):
     return lines
 
 
-def _child_type_groups(component):
+def _child_type_groups(component: Component) -> Iterator[List[Component]]:
     children = sorted(component._children, key=_comp_name)
     for _, group in groupby(children, lambda child: str(type(child))):
         yield list(group)
 
 
-def _comp_name(component):
+def _comp_name(component: Component) -> str:
     return component.name if component.name else type(component).__name__
 
 
-def _comp_scope(component):
+def _comp_scope(component: Component) -> str:
     return component.scope if component.scope else type(component).__name__
 
 
-def _cluster_id(component):
+def _cluster_id(component: Component) -> str:
     return 'cluster_' + _comp_scope(component)
 
 
-def _cluster_label(component_group):
+def _cluster_label(component_group: Sequence[Component]) -> str:
     if len(component_group) == 1:
         return f'<b>{_comp_name(component_group[0])}</b>'
     else:
         return f'<b>{component_group[0].name}..{component_group[-1].name}</b>'
 
 
-def _comp_label(component, label_name, show_processes):
+def _comp_label(
+    component: Component, label_name: str, show_processes: bool
+) -> List[str]:
     label_lines = [f'<b>{label_name}</b><br align="left"/>']
     if show_processes and component._processes:
         label_lines.append('<br/>')
@@ -303,5 +311,5 @@ def _comp_label(component, label_name, show_processes):
     return label_lines
 
 
-def _join_attrs(attrs):
+def _join_attrs(attrs: Dict[str, str]) -> str:
     return ','.join(f'{k}={v}' for k, v in sorted(attrs.items()))

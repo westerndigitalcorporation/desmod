@@ -4,6 +4,18 @@ from contextlib import closing
 from multiprocessing import Process, Queue, cpu_count
 from pprint import pprint
 from threading import Thread
+from types import TracebackType
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Type,
+    Union,
+)
 import json
 import os
 import random
@@ -13,14 +25,20 @@ import timeit
 import simpy
 import yaml
 
-from desmod.config import factorial_config
+from desmod.config import ConfigDict, ConfigFactor, factorial_config
 from desmod.progress import (
+    ProgressTuple,
     consume_multi_progress,
     get_multi_progress_manager,
     standalone_progress_manager,
 )
 from desmod.timescale import parse_time, scale_time
 from desmod.tracer import TraceManager
+
+if TYPE_CHECKING:
+    from desmod.component import Component  # noqa: F401
+
+ResultDict = Dict[str, Any]
 
 
 class SimEnvironment(simpy.Environment):
@@ -42,7 +60,7 @@ class SimEnvironment(simpy.Environment):
 
     """
 
-    def __init__(self, config):
+    def __init__(self, config: ConfigDict) -> None:
         super().__init__()
         #: The configuration dictionary.
         self.config = config
@@ -70,12 +88,12 @@ class SimEnvironment(simpy.Environment):
 
         #: From 'meta.sim.index', the simulation's index when running multiple
         #: related simulations or `None` for a standalone simulation.
-        self.sim_index = config.get('meta.sim.index')
+        self.sim_index: Optional[int] = config.get('meta.sim.index')
 
         #: :class:`TraceManager` instance.
         self.tracemgr = TraceManager(self)
 
-    def time(self, t=None, unit='s'):
+    def time(self, t: Optional[int] = None, unit: str = 's') -> Union[int, float]:
         """The current simulation time scaled to specified unit.
 
         :param float t: Time in simulation units. Default is :attr:`now`.
@@ -88,7 +106,7 @@ class SimEnvironment(simpy.Environment):
         sim_time = ((self.now if t is None else t) * ts_mag, ts_unit)
         return scale_time(sim_time, target_scale)
 
-    def get_progress(self):
+    def get_progress(self) -> ProgressTuple:
         if isinstance(self.until, SimStopEvent):
             t_stop = self.until.t_stop
         else:
@@ -107,11 +125,11 @@ class SimStopEvent(simpy.Event):
 
     """
 
-    def __init__(self, env):
+    def __init__(self, env: SimEnvironment) -> None:
         super().__init__(env)
-        self.t_stop = None
+        self.t_stop: Optional[Union[int, float]] = None
 
-    def schedule(self, delay=0):
+    def schedule(self, delay: Union[int, float] = 0) -> None:
         assert not self.triggered
         assert delay >= 0
         self._ok = True
@@ -123,14 +141,14 @@ class SimStopEvent(simpy.Event):
 class _Workspace:
     """Context manager for workspace directory management."""
 
-    def __init__(self, config):
-        self.workspace = config.setdefault(
+    def __init__(self, config: ConfigDict) -> None:
+        self.workspace: str = config.setdefault(
             'meta.sim.workspace', config.setdefault('sim.workspace', os.curdir)
         )
-        self.overwrite = config.setdefault('sim.workspace.overwrite', False)
-        self.prev_dir = os.getcwd()
+        self.overwrite: bool = config.setdefault('sim.workspace.overwrite', False)
+        self.prev_dir: str = os.getcwd()
 
-    def __enter__(self):
+    def __enter__(self) -> '_Workspace':
         if os.path.relpath(self.workspace) != os.curdir:
             workspace_exists = os.path.isdir(self.workspace)
             if self.overwrite and workspace_exists:
@@ -138,18 +156,24 @@ class _Workspace:
             if self.overwrite or not workspace_exists:
                 os.makedirs(self.workspace)
             os.chdir(self.workspace)
+        return self
 
-    def __exit__(self, *exc):
+    def __exit__(
+        self,
+        exc_type: Optional[Type[Exception]],
+        exc_value: Optional[Exception],
+        traceback: Optional[TracebackType],
+    ) -> None:
         os.chdir(self.prev_dir)
 
 
 def simulate(
-    config,
-    top_type,
-    env_type=SimEnvironment,
-    reraise=True,
+    config: ConfigDict,
+    top_type: Type['Component'],
+    env_type: Type[SimEnvironment] = SimEnvironment,
+    reraise: bool = True,
     progress_manager=standalone_progress_manager,
-):
+) -> ResultDict:
     """Initialize, elaborate, and run a simulation.
 
      All exceptions are caught by `simulate()` so they can be logged and
@@ -166,7 +190,7 @@ def simulate(
         Dictionary containing the model-specific results of the simulation.
     """
     t0 = timeit.default_timer()
-    result = {}
+    result: ResultDict = {}
     result_file = config.setdefault('sim.result.file')
     config_file = config.setdefault('sim.config.file')
     try:
@@ -210,13 +234,13 @@ def simulate(
 
 
 def simulate_factors(
-    base_config,
-    factors,
-    top_type,
-    env_type=SimEnvironment,
-    jobs=None,
-    config_filter=None,
-):
+    base_config: ConfigDict,
+    factors: List[ConfigFactor],
+    top_type: Type['Component'],
+    env_type: Type[SimEnvironment] = SimEnvironment,
+    jobs: Optional[int] = None,
+    config_filter: Optional[Callable[[ConfigDict], bool]] = None,
+) -> List[ResultDict]:
     """Run multi-factor simulations in separate processes.
 
     The `factors` are used to compose specialized config dictionaries for the
@@ -250,7 +274,12 @@ def simulate_factors(
     return simulate_many(configs, top_type, env_type, jobs)
 
 
-def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
+def simulate_many(
+    configs: Sequence[ConfigDict],
+    top_type: Type['Component'],
+    env_type: Type[SimEnvironment] = SimEnvironment,
+    jobs: Optional[int] = None,
+) -> List[ResultDict]:
     """Run multiple experiments in separate processes.
 
     The :mod:`python:multiprocessing` module is used run each simulation with a
@@ -271,9 +300,11 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
         config.setdefault('sim.progress.enable', False) for config in configs
     )
 
-    progress_queue = Queue() if progress_enable else None
-    result_queue = Queue()
-    config_queue = Queue()
+    progress_queue: Optional[
+        Queue[ProgressTuple]
+    ] = Queue() if progress_enable else None
+    result_queue: Queue[ResultDict] = Queue()
+    config_queue: Queue[Optional[ConfigDict]] = Queue()
 
     workspaces = set()
     max_width = 0
@@ -340,7 +371,12 @@ def simulate_many(configs, top_type, env_type=SimEnvironment, jobs=None):
 
 
 def _simulate_worker(
-    top_type, env_type, reraise, progress_queue, config_queue, result_queue
+    top_type: Type['Component'],
+    env_type: Type[SimEnvironment],
+    reraise: bool,
+    progress_queue: Optional['Queue[ProgressTuple]'],
+    config_queue: 'Queue[Optional[ConfigDict]]',
+    result_queue: 'Queue[ResultDict]',
 ):
     progress_manager = get_multi_progress_manager(progress_queue)
     while True:
@@ -351,7 +387,7 @@ def _simulate_worker(
         result_queue.put(result)
 
 
-def _dump_dict(filename, dump_dict):
+def _dump_dict(filename: str, dump_dict: Dict[str, Any]):
     if filename is not None:
         _, ext = os.path.splitext(filename)
         if ext not in ['.yaml', '.yml', '.json', '.py']:

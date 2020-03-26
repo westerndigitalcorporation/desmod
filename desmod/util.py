@@ -3,7 +3,7 @@ import string
 _formatter = string.Formatter()
 
 
-def partial_format(format_string, **kwargs):
+def partial_format(format_string: str, **kwargs: object) -> str:
     """Partially replace replacement fields in format string.
 
     Partial formatting allows a format string to be progressively formatted.
