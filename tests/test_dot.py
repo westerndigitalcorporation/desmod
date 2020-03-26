@@ -28,7 +28,7 @@ class Top(Component):
     base_name = ''
 
     def __init__(self, *args, **kwargs):
-        super(Top, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.a = A(self)
         self.bs = [B(self, index=i) for i in range(5)]
 
@@ -45,7 +45,7 @@ class B(Component):
     base_name = 'b'
 
     def __init__(self, *args, **kwargs):
-        super(B, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.add_connections('a')
         self.add_process(self.my_proc)
 

@@ -30,7 +30,7 @@ class Top(Component):
     """The top-level component of the model."""
 
     def __init__(self, *args, **kwargs):
-        super(Top, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.customers = Customers(self)
         self.grocery = GroceryStore(self)
 
@@ -74,7 +74,7 @@ class GroceryStore(Component):
     base_name = 'grocery'
 
     def __init__(self, *args, **kwargs):
-        super(GroceryStore, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         num_lanes = self.env.config['grocery.num_lanes']
         self.checkout_lanes = [CheckoutLane(self, index=i) for i in range(num_lanes)]
 
@@ -113,7 +113,7 @@ class CheckoutLane(Component):
     base_name = 'lane'
 
     def __init__(self, *args, **kwargs):
-        super(CheckoutLane, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.cashier = Cashier(self)
 
@@ -149,7 +149,7 @@ class Cashier(Component):
     base_name = 'cashier'
 
     def __init__(self, *args, **kwargs):
-        super(Cashier, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.add_connections('lane')
         self.add_process(self.checkout)
 
@@ -197,7 +197,7 @@ class Bagger(Component):
     base_name = 'bagger'
 
     def __init__(self, *args, **kwargs):
-        super(Bagger, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.add_connections('checkout_lanes')
         self.bag_dist = partial(
             self.env.rand.expovariate, 1 / self.env.config['bagger.bag_time']
@@ -298,7 +298,7 @@ class Customers(Component):
     base_name = 'customers'
 
     def __init__(self, *args, **kwargs):
-        super(Customers, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.add_connections('grocery')
         self.add_process(self.generate_customers)
         self.active = Container(self.env)

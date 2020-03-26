@@ -18,7 +18,7 @@ from simpy.core import BoundClass
 
 class QueuePutEvent(Event):
     def __init__(self, queue, item):
-        super(QueuePutEvent, self).__init__(queue.env)
+        super().__init__(queue.env)
         self.queue = queue
         self.item = item
         queue._put_waiters.append(self)
@@ -39,7 +39,7 @@ class QueuePutEvent(Event):
 
 class QueueGetEvent(Event):
     def __init__(self, queue):
-        super(QueueGetEvent, self).__init__(queue.env)
+        super().__init__(queue.env)
         self.queue = queue
         queue._get_waiters.append(self)
         self.callbacks.extend([queue._trigger_when_at_most, queue._trigger_put])
@@ -59,7 +59,7 @@ class QueueGetEvent(Event):
 
 class QueueWhenAtMostEvent(Event):
     def __init__(self, queue, num_items):
-        super(QueueWhenAtMostEvent, self).__init__(queue.env)
+        super().__init__(queue.env)
         self.queue = queue
         self.num_items = num_items
         heappush(queue._at_most_waiters, self)
@@ -83,7 +83,7 @@ class QueueWhenAtMostEvent(Event):
 
 class QueueWhenAtLeastEvent(Event):
     def __init__(self, queue, num_items):
-        super(QueueWhenAtLeastEvent, self).__init__(queue.env)
+        super().__init__(queue.env)
         self.queue = queue
         self.num_items = num_items
         heappush(queue._at_least_waiters, self)
@@ -107,22 +107,22 @@ class QueueWhenAtLeastEvent(Event):
 
 class QueueWhenAnyEvent(QueueWhenAtLeastEvent):
     def __init__(self, queue):
-        super(QueueWhenAnyEvent, self).__init__(queue, num_items=1)
+        super().__init__(queue, num_items=1)
 
 
 class QueueWhenFullEvent(QueueWhenAtLeastEvent):
     def __init__(self, queue):
-        super(QueueWhenFullEvent, self).__init__(queue, num_items=queue.capacity)
+        super().__init__(queue, num_items=queue.capacity)
 
 
 class QueueWhenNotFullEvent(QueueWhenAtMostEvent):
     def __init__(self, queue):
-        super(QueueWhenNotFullEvent, self).__init__(queue, num_items=queue.capacity - 1)
+        super().__init__(queue, num_items=queue.capacity - 1)
 
 
 class QueueWhenEmptyEvent(QueueWhenAtMostEvent):
     def __init__(self, queue):
-        super(QueueWhenEmptyEvent, self).__init__(queue, num_items=0)
+        super().__init__(queue, num_items=0)
 
 
 class Queue:
@@ -280,7 +280,7 @@ class PriorityQueue(Queue):
     """
 
     def __init__(self, *args, **kwargs):
-        super(PriorityQueue, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         heapify(self.items)
 
     def _enqueue_item(self, item):

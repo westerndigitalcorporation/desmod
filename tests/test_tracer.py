@@ -47,7 +47,7 @@ class TopTest(Component):
     base_name = 'top'
 
     def __init__(self, *args, **kwargs):
-        super(TopTest, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.container = simpy.Container(self.env)
         self.resource = simpy.Resource(self.env)
         self.queue = Queue(self.env)
@@ -94,7 +94,7 @@ class CompA(Component):
     base_name = 'a'
 
     def __init__(self, *args, **kwargs):
-        super(CompA, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.add_process(self.loop)
         self.add_connections('container')
 

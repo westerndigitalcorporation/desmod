@@ -19,7 +19,7 @@ class PoolPutEvent(Event):
     def __init__(self, pool, amount=1):
         if not (0 < amount <= pool.capacity):
             raise ValueError('amount must be in (0, capacity]')
-        super(PoolPutEvent, self).__init__(pool.env)
+        super().__init__(pool.env)
         self.pool = pool
         self.amount = amount
         self.callbacks.extend([pool._trigger_when_at_least, pool._trigger_get])
@@ -42,7 +42,7 @@ class PoolGetEvent(Event):
     def __init__(self, pool, amount=1):
         if not (0 < amount <= pool.capacity):
             raise ValueError('amount must be in (0, capacity]')
-        super(PoolGetEvent, self).__init__(pool.env)
+        super().__init__(pool.env)
         self.pool = pool
         self.amount = amount
         self.callbacks.extend([pool._trigger_when_at_most, pool._trigger_put])
@@ -63,7 +63,7 @@ class PoolGetEvent(Event):
 
 class PoolWhenAtMostEvent(Event):
     def __init__(self, pool, amount):
-        super(PoolWhenAtMostEvent, self).__init__(pool.env)
+        super().__init__(pool.env)
         self.pool = pool
         self.amount = amount
         heapq.heappush(pool._at_most_waiters, self)
@@ -87,7 +87,7 @@ class PoolWhenAtMostEvent(Event):
 
 class PoolWhenAtLeastEvent(Event):
     def __init__(self, pool, amount):
-        super(PoolWhenAtLeastEvent, self).__init__(pool.env)
+        super().__init__(pool.env)
         self.pool = pool
         self.amount = amount
         heapq.heappush(pool._at_least_waiters, self)
@@ -111,22 +111,22 @@ class PoolWhenAtLeastEvent(Event):
 
 class PoolWhenAnyEvent(PoolWhenAtLeastEvent):
     def __init__(self, pool, epsilon=float_info.epsilon):
-        super(PoolWhenAnyEvent, self).__init__(pool, amount=epsilon)
+        super().__init__(pool, amount=epsilon)
 
 
 class PoolWhenFullEvent(PoolWhenAtLeastEvent):
     def __init__(self, pool):
-        super(PoolWhenFullEvent, self).__init__(pool, amount=pool.capacity)
+        super().__init__(pool, amount=pool.capacity)
 
 
 class PoolWhenNotFullEvent(PoolWhenAtMostEvent):
     def __init__(self, pool, epsilon=float_info.epsilon):
-        super(PoolWhenNotFullEvent, self).__init__(pool, amount=pool.capacity - epsilon)
+        super().__init__(pool, amount=pool.capacity - epsilon)
 
 
 class PoolWhenEmptyEvent(PoolWhenAtMostEvent):
     def __init__(self, pool):
-        super(PoolWhenEmptyEvent, self).__init__(pool, amount=0)
+        super().__init__(pool, amount=0)
 
 
 class Pool:
@@ -252,7 +252,7 @@ class PriorityPoolPutEvent(Event):
     def __init__(self, pool, amount=1, priority=0):
         if not (0 < amount <= pool.capacity):
             raise ValueError('amount must be in (0, capacity]')
-        super(PriorityPoolPutEvent, self).__init__(pool.env)
+        super().__init__(pool.env)
         self.pool = pool
         self.amount = amount
         self.key = priority, pool._event_count
@@ -281,7 +281,7 @@ class PriorityPoolGetEvent(Event):
     def __init__(self, pool, amount=1, priority=0):
         if not (0 < amount <= pool.capacity):
             raise ValueError('amount must be in (0, capacity]')
-        super(PriorityPoolGetEvent, self).__init__(pool.env)
+        super().__init__(pool.env)
         self.pool = pool
         self.amount = amount
         self.key = priority, pool._event_count
@@ -316,7 +316,7 @@ class PriorityPool(Pool):
     """
 
     def __init__(self, env, capacity=float('inf'), init=0, hard_cap=False, name=None):
-        super(PriorityPool, self).__init__(env, capacity, init, hard_cap, name)
+        super().__init__(env, capacity, init, hard_cap, name)
         self._event_count = 0
 
     #: Put amount in the pool.

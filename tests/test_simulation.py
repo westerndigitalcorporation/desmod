@@ -62,7 +62,7 @@ class TopTest(Component):
             raise Exception('fail_pre_init')
 
     def __init__(self, *args, **kwargs):
-        super(TopTest, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if self.env.config.get('test.fail_init'):
             raise Exception('fail_init')
         self.add_process(self.test_proc)
@@ -378,7 +378,7 @@ def test_many_progress_no_colorama(config, capsys, no_colorama):
 def test_workspace_env_init(config):
     class TestEnvironment(SimEnvironment):
         def __init__(self, config):
-            super(TestEnvironment, self).__init__(config)
+            super().__init__(config)
             assert os.path.split(os.getcwd())[-1] == config['sim.workspace']
 
     workspace = config['sim.workspace']
@@ -463,7 +463,7 @@ def test_sim_time_non_default_t(config):
 def test_sim_until(config, progress_enable):
     class TestEnvironment(SimEnvironment):
         def __init__(self, config):
-            super(TestEnvironment, self).__init__(config)
+            super().__init__(config)
             self.until = SimStopEvent(self)
 
     config['sim.progress.enable'] = progress_enable

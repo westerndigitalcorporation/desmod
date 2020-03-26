@@ -43,7 +43,7 @@ class SimEnvironment(simpy.Environment):
     """
 
     def __init__(self, config):
-        super(SimEnvironment, self).__init__()
+        super().__init__()
         #: The configuration dictionary.
         self.config = config
 
@@ -108,7 +108,7 @@ class SimStopEvent(simpy.Event):
     """
 
     def __init__(self, env):
-        super(SimStopEvent, self).__init__(env)
+        super().__init__(env)
         self.t_stop = None
 
     def schedule(self, delay=0):

@@ -34,7 +34,7 @@ class Top(Component):
     """
 
     def __init__(self, *args, **kwargs):
-        super(Top, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # The simulation configuration is available everywhere via the
         # simulation environment.
@@ -71,7 +71,7 @@ class TankerCompany(Component):
         # Many Component subclasses can simply forward *args and **kwargs to
         # the superclass initializer; although Component subclasses may also
         # have custom positional and keyword arguments.
-        super(TankerCompany, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         num_tankers = self.env.config.get('tanker.count', 1)
 
         # Instantiate the fleet of tanker trucks.
@@ -106,7 +106,7 @@ class TankerTruck(Component):
     base_name = 'truck'
 
     def __init__(self, *args, **kwargs):
-        super(TankerTruck, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.pump_rate = self.env.config.get('tanker.pump_rate', 10)
         self.avg_travel = self.env.config.get('tanker.travel_time', 600)
         tank_capacity = self.env.config.get('tanker.capacity', 200)
@@ -175,7 +175,7 @@ class GasStation(Component):
     base_name = 'station'
 
     def __init__(self, *args, **kwargs):
-        super(GasStation, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         config = self.env.config
         self.add_connections('tanker_company')
         self.arrival_interval = config.get('gas_station.arrival_interval', 60)
