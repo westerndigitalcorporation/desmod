@@ -1,3 +1,4 @@
+black >= 19.10b0; implementation_name == "cpython"
 colorama
 flake8
 isort
