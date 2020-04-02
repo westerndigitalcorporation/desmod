@@ -13,8 +13,8 @@ __ https://simpy.readthedocs.io/en/latest/
     :target: https://desmod.readthedocs.io/en/latest/
     :alt: Documentation Status
 
-.. image:: https://travis-ci.org/SanDisk-Open-Source/desmod.svg?branch=master
-    :target: https://travis-ci.org/SanDisk-Open-Source/desmod
+.. image:: https://github.com/SanDisk-Open-Source/desmod/workflows/CI/badge.svg
+   :target: https://github.com/SanDisk-Open-Source/desmod/actions?query=workflow%3ACI
     :alt: Build Status
 
 .. image:: https://coveralls.io/repos/github/SanDisk-Open-Source/desmod/badge.svg?branch=master
@@ -36,8 +36,6 @@ Resources
 * `Documentation on ReadTheDocs <http://desmod.readthedocs.io/>`_
 * `Questions and development discussion Google Group
   <https://groups.google.com/forum/?hl=en#!forum/desmod>`_
-* `Source code and issue tracker on GitHub
+* `Source code, issue tracker, and CI on GitHub
   <https://github.com/SanDisk-Open-Source/desmod>`_
 * `Package on PyPI <https://pypi.python.org/pypi/desmod>`_
-* `Continuous integration on TravisCI
-  <https://travis-ci.org/SanDisk-Open-Source/desmod>`_
