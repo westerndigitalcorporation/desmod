@@ -1,6 +1,12 @@
 Changelog
 =========
 
+desmod-0.6.0 (2020-04-07)
+-------------------------
+* [BREAK] Drop support for Python < 3.6
+* [NEW] Inline type annotations
+* [FIX] Use yaml.safe_load() in tests
+
 desmod-0.5.6 (2019-02-12)
 -------------------------
 * [NEW] PriorityPool for prioritized get/put requests
