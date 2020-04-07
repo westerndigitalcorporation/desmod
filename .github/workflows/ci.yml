@@ -89,3 +89,24 @@ jobs:
         COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
       run: |
         make coverage && coveralls
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Download dist build
+      uses: actions/download-artifact@v1
+      with:
+        name: desmod-dist
+    - name: Print dists
+      run: |
+        ls desmod-dist/
+    - name: Publish dists
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        user: __token__
+        password: ${{ secrets.pypi_password }}
+        packages_dir: desmod-dist
