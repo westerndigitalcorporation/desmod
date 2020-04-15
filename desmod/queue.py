@@ -47,11 +47,12 @@ class QueuePutEvent(Event):
 
     def __exit__(
         self,
-        exc_type: Optional[Type[Exception]],
-        exc_value: Optional[Exception],
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
         traceback: Optional[TracebackType],
-    ) -> None:
+    ) -> Optional[bool]:
         self.cancel()
+        return None
 
     def cancel(self) -> None:
         if not self.triggered:
@@ -74,11 +75,12 @@ class QueueGetEvent(Event):
 
     def __exit__(
         self,
-        exc_type: Optional[Type[Exception]],
-        exc_value: Optional[Exception],
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
         traceback: Optional[TracebackType],
-    ) -> None:
+    ) -> Optional[bool]:
         self.cancel()
+        return None
 
     def cancel(self) -> None:
         if not self.triggered:
@@ -102,11 +104,12 @@ class QueueWhenAtMostEvent(Event):
 
     def __exit__(
         self,
-        exc_type: Optional[Type[Exception]],
-        exc_value: Optional[Exception],
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
         traceback: Optional[TracebackType],
-    ) -> None:
+    ) -> Optional[bool]:
         self.cancel()
+        return None
 
     def cancel(self) -> None:
         if not self.triggered:
@@ -131,11 +134,12 @@ class QueueWhenAtLeastEvent(Event):
 
     def __exit__(
         self,
-        exc_type: Optional[Type[Exception]],
-        exc_value: Optional[Exception],
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
         traceback: Optional[TracebackType],
-    ) -> None:
+    ) -> Optional[bool]:
         self.cancel()
+        return None
 
     def cancel(self) -> None:
         if not self.triggered:

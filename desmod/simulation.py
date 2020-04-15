@@ -160,11 +160,12 @@ class _Workspace:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[Exception]],
-        exc_value: Optional[Exception],
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
         traceback: Optional[TracebackType],
-    ) -> None:
+    ) -> Optional[bool]:
         os.chdir(self.prev_dir)
+        return None
 
 
 def simulate(

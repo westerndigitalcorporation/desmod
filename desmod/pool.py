@@ -38,11 +38,12 @@ class PoolPutEvent(Event):
 
     def __exit__(
         self,
-        exc_type: Optional[Type[Exception]],
-        exc_value: Optional[Exception],
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
         traceback: Optional[TracebackType],
-    ) -> None:
+    ) -> Optional[bool]:
         self.cancel()
+        return None
 
     def cancel(self) -> None:
         if not self.triggered:
@@ -68,11 +69,12 @@ class PoolGetEvent(Event):
 
     def __exit__(
         self,
-        exc_type: Optional[Type[Exception]],
-        exc_value: Optional[Exception],
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
         traceback: Optional[TracebackType],
-    ) -> None:
+    ) -> Optional[bool]:
         self.cancel()
+        return None
 
     def cancel(self) -> None:
         if not self.triggered:
@@ -96,11 +98,12 @@ class PoolWhenAtMostEvent(Event):
 
     def __exit__(
         self,
-        exc_type: Optional[Type[Exception]],
-        exc_value: Optional[Exception],
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
         traceback: Optional[TracebackType],
-    ) -> None:
+    ) -> Optional[bool]:
         self.cancel()
+        return None
 
     def cancel(self) -> None:
         if not self.triggered:
@@ -125,11 +128,12 @@ class PoolWhenAtLeastEvent(Event):
 
     def __exit__(
         self,
-        exc_type: Optional[Type[Exception]],
-        exc_value: Optional[Exception],
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
         traceback: Optional[TracebackType],
-    ) -> None:
+    ) -> Optional[bool]:
         self.cancel()
+        return None
 
     def cancel(self) -> None:
         if not self.triggered:
@@ -329,11 +333,12 @@ class PriorityPoolPutEvent(Event):
 
     def __exit__(
         self,
-        exc_type: Optional[Type[Exception]],
-        exc_value: Optional[Exception],
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
         traceback: Optional[TracebackType],
-    ) -> None:
+    ) -> Optional[bool]:
         self.cancel()
+        return None
 
     def cancel(self) -> None:
         if not self.triggered:
@@ -365,11 +370,12 @@ class PriorityPoolGetEvent(Event):
 
     def __exit__(
         self,
-        exc_type: Optional[Type[Exception]],
-        exc_value: Optional[Exception],
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
         traceback: Optional[TracebackType],
-    ) -> None:
+    ) -> Optional[bool]:
         self.cancel()
+        return None
 
     def cancel(self) -> None:
         if not self.triggered:
