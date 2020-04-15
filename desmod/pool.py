@@ -143,7 +143,7 @@ class PoolWhenAtLeastEvent(Event):
 
 
 class PoolWhenAnyEvent(PoolWhenAtLeastEvent):
-    def __init__(self, pool: 'Pool', epsilon: float = float_info.epsilon):
+    def __init__(self, pool: 'Pool', epsilon: float = float_info.min):
         super().__init__(pool, amount=epsilon)
 
 
@@ -153,7 +153,10 @@ class PoolWhenFullEvent(PoolWhenAtLeastEvent):
 
 
 class PoolWhenNotFullEvent(PoolWhenAtMostEvent):
-    def __init__(self, pool: 'Pool', epsilon: float = float_info.epsilon):
+    def __init__(self, pool: 'Pool', epsilon: Optional[float] = None):
+        if epsilon is None and isinstance(pool.capacity, int):
+            epsilon = 0.5
+        assert epsilon is not None, "when_not_any(epsilon) is required for float Pool."
         super().__init__(pool, amount=pool.capacity - epsilon)
 
 

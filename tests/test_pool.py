@@ -100,6 +100,42 @@ def test_pool2(env, PoolClass):
 
 
 @pytest.mark.parametrize('PoolClass', [Pool, PriorityPool])
+def test_pool_float(env, PoolClass):
+    pool = PoolClass(env, capacity=3.0)
+
+    def proc(env, pool):
+        assert pool.is_empty
+
+        when_full = pool.when_full()
+        assert not when_full.triggered
+        when_any = pool.when_any()
+        assert not when_any.triggered
+
+        get_half = pool.get(0.5)
+        assert not get_half.triggered
+        put_three = pool.put(3)
+        assert put_three.triggered
+        yield put_three
+        assert pool.level == 2.5
+        assert get_half.triggered
+
+        with raises(AssertionError):
+            when_not_full = pool.when_not_full()
+        when_not_full = pool.when_not_full(epsilon=0.01)
+        assert when_not_full.triggered
+
+        put_half = pool.put(0.5)
+        assert put_half.triggered
+        yield put_half
+
+        when_not_full = pool.when_not_full(epsilon=0.01)
+        assert not when_not_full.triggered
+
+    env.process(proc(env, pool))
+    env.run()
+
+
+@pytest.mark.parametrize('PoolClass', [Pool, PriorityPool])
 def test_pool_overflow(env, PoolClass):
     pool = PoolClass(env, capacity=5, hard_cap=True)
 
