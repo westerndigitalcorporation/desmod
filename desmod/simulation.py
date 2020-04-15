@@ -93,7 +93,7 @@ class SimEnvironment(simpy.Environment):
         #: :class:`TraceManager` instance.
         self.tracemgr = TraceManager(self)
 
-    def time(self, t: Optional[int] = None, unit: str = 's') -> Union[int, float]:
+    def time(self, t: Optional[float] = None, unit: str = 's') -> Union[int, float]:
         """The current simulation time scaled to specified unit.
 
         :param float t: Time in simulation units. Default is :attr:`now`.
