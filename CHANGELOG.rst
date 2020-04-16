@@ -1,6 +1,12 @@
 Changelog
 =========
 
+desmod-0.6.1 (2020-04-16)
+-------------------------
+* [FIX] Pool when_not_full and when_not_empty broken epsilon
+* [FIX] Typing for SimEnvironment.time()
+* [FIX] Typing for __exit__() methods
+
 desmod-0.6.0 (2020-04-07)
 -------------------------
 * [BREAK] Drop support for Python < 3.6
