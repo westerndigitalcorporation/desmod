@@ -301,9 +301,9 @@ def simulate_many(
         config.setdefault('sim.progress.enable', False) for config in configs
     )
 
-    progress_queue: Optional[
-        Queue[ProgressTuple]
-    ] = Queue() if progress_enable else None
+    progress_queue: Optional[Queue[ProgressTuple]] = (
+        Queue() if progress_enable else None
+    )
     result_queue: Queue[ResultDict] = Queue()
     config_queue: Queue[Optional[ConfigDict]] = Queue()
 

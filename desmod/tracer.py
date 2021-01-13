@@ -228,7 +228,7 @@ class VCDTracer(Tracer):
             os.remove(self.save_filename)
 
     def activate_probe(
-        self, scope: str, target: ProbeTarget, **hints: Any,
+        self, scope: str, target: ProbeTarget, **hints: Any
     ) -> Optional[ProbeCallback]:
         assert self.enabled
         var_type: Optional[str] = hints.get('var_type')
@@ -282,7 +282,7 @@ class VCDTracer(Tracer):
         return trace_callback
 
     def _start_stop(
-        self, t_start: Optional[Union[int, float]], t_stop: Optional[Union[int, float]],
+        self, t_start: Optional[Union[int, float]], t_stop: Optional[Union[int, float]]
     ) -> Generator[simpy.Timeout, None, None]:
         # Wait for simulation to start to ensure all variable registration is
         # complete before doing and dump_on()/dump_off() calls.
