@@ -20,7 +20,7 @@ templates_path = ['_templates']
 source_suffix = '.rst'
 master_doc = 'index'
 project = 'desmod'
-copyright = '2016, Western Digital Corporation'
+copyright = '2021, Western Digital Corporation'
 author = 'Pete Grayson'
 version = get_version(root='..', relative_to=__file__)
 language = None
