@@ -10,3 +10,4 @@ setuptools_scm
 Sphinx
 sphinx-rtd-theme
 tox
+types-PyYAML
